@@ -1,81 +1,119 @@
 # You2.0 – Beyond Tracking, Into Becoming
 
-**You2.0** is an AI-powered lifestyle and wellness tracker designed to help individuals build healthier habits. Unlike generic fitness apps, You2.0 combines **manual self-reports** and **smartphone sensor data** to provide **personalized recommendations, gamified engagement, and early risk predictions** for lifestyle-related conditions.
+An AI-powered Lifestyle & Wellness Tracking System integrating machine learning, mobile sensing, and behavioral analytics to help users build healthier long-term habits.
+
+This project was developed as part of the Major Project (AY 2025–26), Department of Computer Science & Engineering, Jaypee University of Information Technology (JUIT).
 
 ---
 
-## 📊 Features
+## 🚀 Overview
 
-* **Daily Wellness Check-In** (Google Form / App questionnaire)
-* **Sleep & Rest Tracking** → quality, duration, fatigue
-* **Mood & Stress Monitoring** → self-reports + mood recognition
-* **Hydration & Nutrition** → water intake, meal quality, meals per day
-* **Physical Activity** → steps, exercise frequency, sedentary hours, screen time
-* **Medical History** → diabetes, obesity, hypertension, mental health, etc.
-* **ML-Based Insights** → obesity/stress/diabetes risk predictions
-* **Gamification** → streaks, badges, progress graphs
-* **Personalized Alerts** → push notifications for hydration, sleep, inactivity
+**You2.0** combines manual self-reports, smartphone sensor data, and deep-learning models to:
 
----
+* Predict lifestyle-related risks
+* Recognize food items & mood using ML
+* Provide personalized recommendations
+* Gamify daily wellness habits
+* Build long-term health insights
 
-## 🛠️ Tools, Technologies & Languages
+Components include:
 
-**Programming Languages**
-
-* Python 3.11
-* JavaScript / TypeScript (ES2023, TS 5.6)
-* SQL (PostgreSQL 16, optional)
-
-**Technologies**
-
-* React Native 0.76 (Mobile App)
-* Node.js 20 LTS + Express.js 4.21 (Backend APIs)
-* MongoDB Atlas 7.0 + Mongoose 8.6 (Database)
-* JWT Authentication (jsonwebtoken 9.0.2)
-* Firebase Cloud Messaging v12.0 / OneSignal 5.0 (Push Notifications)
-* TensorFlow 2.16 / Keras 3.4 (LSTM, CNN, DeepSleep)
-* scikit-learn 1.5 (Baseline ML Models, Ensemble Learning)
-* Hugging Face Transformers 4.44 (Mood Recognition)
-* OpenCV 4.10 (Food Recognition & Portion Estimation)
-* TensorFlow Lite 2.16 / ONNX Runtime 1.20 (Mobile Deployment)
-* Docker 25.0 (Containerization)
-* GitHub / GitLab (Version Control, CI/CD)
-
-**Tools**
-
-* pandas 2.2, numpy 1.26 (Preprocessing, Feature Engineering)
-* Matplotlib 3.9, Seaborn 0.13 (Data Visualization)
-* Postman 11 / Thunder Client (API Testing)
-* Draw.io / Lucidchart (Architecture Diagrams)
-* Notion / Trello / Jira (Project Management)
-* Overleaf / MS Word 2025 (Documentation & Reports)
+* Food Classification Model (EfficientNet-B0)
+* Mood Detection Model (EfficientNet-B0)
+* Mobile App (React Native)
+* Backend APIs (Node.js + Express)
+* MongoDB Atlas for cloud storage
 
 ---
 
-## ⚙️ Project Workflow
+## ⭐ Key Features
 
-1. **Dataset & Preprocessing**
+### 🔹 AI & ML Capabilities
 
-   * Collected via Google Form (Daily Wellness Check-In)
-   * Data cleaning, normalization, feature extraction
+* Food Recognition using EfficientNet-B0
+* Mood Recognition (FER-2013)
+* Predictions planned for hydration, sleep, steps, sedentary behavior, stress
 
-2. **Model Training Modules**
+### 🔹 Daily Wellness Tracking
 
-   * Water Intake → LSTM (time-series)
-   * Pedometer Data → CNN / LSTM or Google Activity Recognition API
-   * Sedentary Hours → threshold-based classification
-   * Food Recognition → CNN + OpenCV (with manual correction)
-   * Mood Recognition → CNN + Hugging Face transformers
-   * Sleep Detection → DeepSleep framework / Google Fit Sleep API
+* Water intake, meals, food quality
+* Sleep duration & quality
+* Mood, stress, fatigue
+* Exercise, steps, screen time, sedentary hours
 
-3. **Integrated Fitness Model**
+### 🔹 Smart Insights
 
-   * Ensemble learning (stacked/weighted) for lifestyle predictions
+* Personalized alerts
+* Weekly/monthly summaries
+* Streaks & badges
 
-4. **Mobile App Dashboard**
+### 🔹 Tech Stack
 
-   * Daily questionnaire, trend visualization, gamification
-   * Feedback loop with personalized alerts and recommendations
+| Layer         | Tools / Technologies              |
+| ------------- | --------------------------------- |
+| Mobile App    | React Native                      |
+| Backend       | Node.js, Express                  |
+| Database      | MongoDB Atlas                     |
+| ML Models     | PyTorch, EfficientNet-B0, TF Lite |
+| Auth          | JWT                               |
+| Notifications | Firebase / OneSignal              |
+| Tools         | Matplotlib, Seaborn, Colab        |
+
+---
+
+## 🧠 System Architecture
+
+```
+              React Native App
+        (User Inputs + Sensors)
+                    |
+                    ▼
+          Node.js + Express API
+                    |
+                    ▼
+             MongoDB Atlas
+                    |
+                    ▼
+        AI/ML Models (PyTorch)
+  Food Recognition + Mood Detection
+```
+
+---
+
+## 🧪 Machine Learning Models
+
+### 🍱 Food Classification Model
+
+* EfficientNet-B0 transfer learning
+* Datasets: Food-101 + Indian food dataset
+* Preprocessing: resize, normalize, augment
+* Training: Adam, CE Loss, early stopping
+
+### 🙂 Mood Detection Model
+
+* Dataset: FER-2013
+* Classes: 7 emotions
+* Grayscale → 3-channel, resize, augmentation
+* Loss: class-weighted
+* LR scheduling
+
+---
+
+## 📈 Results
+
+### 🔹 Food Model
+
+* Strong validation accuracy
+* Good for Indian dishes
+* Weak on visually similar foods
+
+### 🔹 Mood Model
+
+| Metric   | Result                    |
+| -------- | ------------------------- |
+| Accuracy | ~70–80%                   |
+| Strength | Happy, Neutral, Surprise  |
+| Weakness | Fear, Disgust (imbalance) |
 
 ---
 
@@ -83,90 +121,94 @@
 
 ```
 You2.0/
-│── app/                # React Native mobile app
-│── backend/            # Node.js + Express.js APIs
-│── ml-models/          # Python ML training scripts + saved models
-│── datasets/           # Collected data (Google Form exports, Kaggle datasets)
-│── docs/               # Reports, diagrams, documentation
-│── docker/             # Dockerfiles, deployment configs
-│── README.md           # Project overview
+│── app/
+│── backend/
+│── ml-models/
+│── datasets/
+│── docs/
+│── docker/
+│── README.md
 ```
 
 ---
 
-## 🚀 Setup & Installation
+## 🔧 Installation & Setup
 
-### Prerequisites
+### 1️⃣ Clone
 
-* Node.js 20+, npm / yarn
-* Python 3.11+
-* MongoDB Atlas account
-* Firebase account (for push notifications)
+```
+git clone https://github.com/your-username/You2.0.git
+cd You2.0
+```
 
-### Steps
+### 2️⃣ Backend
 
-1. Clone the repo:
+```
+cd backend
+npm install
+```
 
-   ```bash
-   git clone https://github.com/your-username/you2.0.git
-   cd you2.0
-   ```
-2. Install backend dependencies:
+`.env`:
 
-   ```bash
-   cd backend
-   npm install
-   ```
-3. Install frontend dependencies:
+```
+MONGO_URI=your_db
+JWT_SECRET=your_secret
+FIREBASE_KEY=your_key
+```
 
-   ```bash
-   cd app
-   npm install
-   ```
-4. Setup environment variables (`.env`):
+Run:
 
-   ```
-   MONGO_URI=your_mongodb_atlas_url
-   JWT_SECRET=your_jwt_secret
-   FIREBASE_KEY=your_firebase_key
-   ```
-5. Run backend:
+```
+npm run dev
+```
 
-   ```bash
-   cd backend
-   npm run dev
-   ```
-6. Run mobile app:
+### 3️⃣ Mobile App
 
-   ```bash
-   cd app
-   npx react-native run-android   # for Android
-   npx react-native run-ios       # for iOS
-   ```
+```
+cd app
+npm install
+npx react-native run-android
+```
+
+### 4️⃣ ML Models
+
+* Trained using PyTorch + Colab GPU
+* Exported as `.pth`
+* Converted to TF Lite / ONNX
 
 ---
 
-## 📊 Dataset
+## 🏁 Conclusion
 
-* Collected daily using **Google Form** (“You2.0 Daily Wellness Check-In”)
-* Features include demographics, sleep, mood, hydration, nutrition, activity, screen time, sedentary hours, and medical history
-* Processed using `pandas` and `numpy` before ML training
+You2.0 successfully:
+
+* Built a complete health-tracking ecosystem
+* Integrated deep learning into real-world app usage
+* Achieved strong model performance
+* Demonstrated practical AI-driven wellness insights
 
 ---
 
-## 👩‍💻 Contributors
+## 🔮 Future Scope
 
-* **Aashi Gupta** – Developer, Documentation
-* **Lakshay Malik** – Developer, Documentation
-* **Ishleen Kaur** – Developer, Documentation
+* Hydration/sleep/stress models
+* YOLO for real-time food detection
+* Vision Transformers
+* Firebase Auth + Play Store deployment
+* Health risk scoring engine
 
-Supervisor: **Mr. Kuntal Sarkar** (Assistant Professor, CSE Department, JUIT)
+---
+
+## 👥 Contributors
+
+* **Lakshay Malik** — Worked on the Mood Recognition model, collected and prepared the dataset, and collaborated actively in literature review and report writing.
+* **Aashi Gupta** — Worked on dataset creation, ML model building for food classification and documentation.
+* **Ishleen Kaur** — Worked on documentation, report writing, literature survey, and helped with dataset handling.
+
+Supervisor: Mr. Kuntal Sarkar, JUIT
 
 ---
 
 ## 📜 License
 
-This project is developed as part of the **Major Project (AY 2025–26)** at JUIT.
-For academic purposes only.
-
----
+Academic use only — Major Project AY 2025–26, JUIT.
