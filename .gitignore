@@ -41,3 +41,9 @@ app-example
 # generated native folders
 /ios
 /android
+venv/
+node_modules/
+.env
+__pycache__/
+*.log
+*.ipynb_checkpoints
