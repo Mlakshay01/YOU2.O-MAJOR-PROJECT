@@ -103,7 +103,7 @@ import { View, Text, StyleSheet } from "react-native";
 export default function Home() {
   return (
     <View style={styles.container}>
-      <Text style={styles.text}>Welcome to You2.0 Dashboard 🚀</Text>
+      <Text style={styles.text}> You2.0 App</Text>
     </View>
   );
 }

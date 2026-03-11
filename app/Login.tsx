@@ -1,29 +1,29 @@
 import {
-  View,
+  AntDesign,
+  Ionicons,
+  MaterialCommunityIcons,
+} from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
+import {
+  Alert,
+  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
-  Alert,
+  View,
 } from "react-native";
-import { useRouter } from "expo-router";
-import { LinearGradient } from "expo-linear-gradient";
-import {
-  Ionicons,
-  MaterialCommunityIcons,
-  AntDesign,
-} from "@expo/vector-icons";
 import { COLORS } from "../constants/theme";
 
-import { useState, useEffect } from "react";
-import * as WebBrowser from "expo-web-browser";
+import axios from "axios";
 import * as Google from "expo-auth-session/providers/google";
+import * as WebBrowser from "expo-web-browser";
+import { useEffect, useState } from "react";
 
 WebBrowser.maybeCompleteAuthSession();
 
 export default function Login() {
   const router = useRouter();
-
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -32,15 +32,58 @@ export default function Login() {
   // GOOGLE AUTH
 
   const [request, response, promptAsync] = Google.useAuthRequest({
-  webClientId: "79994712044-dh4tf46i71vmre1jgllger38inia8cm5.apps.googleusercontent.com",
-});
+    webClientId:
+      "79994712044-dh4tf46i71vmre1jgllger38inia8cm5.apps.googleusercontent.com",
+  });
   useEffect(() => {
     if (response?.type === "success") {
-      router.replace("/(tabs)");
+      // router.replace("/(tabs)");
     }
   }, [response]);
 
-  // VALIDATION FUNCTION
+  const handleLogin = async () => {
+    try {
+      const res = await axios.post("http://192.168.1.16:5000/Login", {
+        email: email,
+        password: password,
+      });
+
+      console.log(res.data);
+
+      Alert.alert("Login Successful");
+
+      router.replace("/(tabs)");
+    }catch (error: any) {
+
+  console.log("LOGIN ERROR:", error.response?.data);
+
+  if (error.response) {
+    Alert.alert("Error", error.response.data.message);
+  } else {
+    Alert.alert("Error", "Server not reachable");
+  }
+
+}
+    
+
+      // } catch (error: any) {
+
+      //   Alert.alert(
+      //     error.response?.data?.message ||
+      //     "Invalid email or password"
+      //   );
+
+      // }
+    // } catch (error: any) {
+    //   if (error.response && error.response.data) {
+    //     Alert.alert(error.response.data.message);
+    //   } else {
+    //     Alert.alert("Login failed. Try again.");
+    //   }
+    // }
+  };
+
+  
   const validateLogin = () => {
     if (!email) {
       setError("Email is required");
@@ -58,17 +101,14 @@ export default function Login() {
     }
 
     setError("");
-    router.replace("/(tabs)");
+    // router.replace("/(tabs)");
+    handleLogin();
   };
 
   return (
-    <LinearGradient
-      colors={["#DCEEEE", "#FFFFFF"]}
-      style={styles.container}
-    >
+    <LinearGradient colors={["#DCEEEE", "#FFFFFF"]} style={styles.container}>
       <View style={styles.card}>
-
-        {/* LOGO */}
+        
         <View style={styles.logoRow}>
           <Ionicons name="heart" size={28} color={COLORS.primary} />
           <Text style={styles.logoText}> You2.0</Text>
@@ -76,13 +116,15 @@ export default function Login() {
 
         <Text style={styles.title}>Log In</Text>
         <Text style={styles.subtitle}>
-          Welcome back! Please log in to
-          continue tracking your health journey.
+          Welcome back! Please log in to continue tracking your health journey.
         </Text>
 
-        {/* EMAIL */}
         <View style={styles.inputWrapper}>
-          <MaterialCommunityIcons name="email-outline" size={20} color="#6B7280" />
+          <MaterialCommunityIcons
+            name="email-outline"
+            size={20}
+            color="#6B7280"
+          />
           <TextInput
             placeholder="Your email"
             style={styles.input}
@@ -91,9 +133,13 @@ export default function Login() {
           />
         </View>
 
-        {/* PASSWORD */}
+        
         <View style={styles.inputWrapper}>
-          <MaterialCommunityIcons name="lock-outline" size={20} color="#6B7280" />
+          <MaterialCommunityIcons
+            name="lock-outline"
+            size={20}
+            color="#6B7280"
+          />
           <TextInput
             placeholder="Password"
             secureTextEntry
@@ -104,23 +150,23 @@ export default function Login() {
         </View>
 
         {error ? (
-          <Text style={{ color: "red", marginBottom: 10 }}>
-            {error}
-          </Text>
+          <Text style={{ color: "red", marginBottom: 10 }}>{error}</Text>
         ) : null}
 
         <Text style={styles.forgot}>Forgot password?</Text>
 
+<TouchableOpacity onPress={validateLogin}>
         <LinearGradient
           colors={[COLORS.primary, "#1C7C76"]}
           style={styles.button}
         >
-          <TouchableOpacity onPress={validateLogin}>
+          
             <Text style={styles.buttonText}>Log In</Text>
+            </LinearGradient>
           </TouchableOpacity>
-        </LinearGradient>
+        
 
-        {/* OR */}
+        
         <View style={styles.orRow}>
           <View style={styles.line} />
           <Text style={styles.or}>OR</Text>
@@ -141,7 +187,6 @@ export default function Login() {
             New to You2.0? <Text style={{ fontWeight: "700" }}>Sign Up</Text>
           </Text>
         </TouchableOpacity>
-
       </View>
     </LinearGradient>
   );
