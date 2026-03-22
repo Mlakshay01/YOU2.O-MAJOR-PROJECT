@@ -146,6 +146,28 @@ export default function EditProfile() {
     );
   }
 
+  const calculateBMI = () => {
+  const h = parseFloat(profile.height);
+  const w = parseFloat(profile.weight);
+
+  if (!h || !w) return "--";
+
+  const heightInMeters = h / 100;
+  const bmi = w / (heightInMeters * heightInMeters);
+
+  return bmi.toFixed(1);
+};
+
+const getBMICategory = () => {
+  const bmi = parseFloat(calculateBMI());
+  if (!bmi) return "";
+
+  if (bmi < 18.5) return "Underweight";
+  if (bmi < 25) return "Normal";
+  if (bmi < 30) return "Overweight";
+  return "Obese";
+};
+
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
@@ -160,18 +182,27 @@ export default function EditProfile() {
 
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>Personal Details</Text>
+
+        {/* NAME */}
+  <Text style={styles.label}>Full Name</Text>
         <TextInput
           style={styles.input}
           placeholder="Full Name"
           value={profile.name}
           onChangeText={(text) => setProfile({ ...profile, name: text })}
         />
+
+        {/* Email */}
+        <Text style={styles.label}>Email</Text>
         <TextInput
           style={[styles.input, styles.disabledInput]}
           value={profile.email}
           editable={false}
           selectTextOnFocus={false}
         />
+
+        {/* Age */}
+        <Text style={styles.label}>Age</Text>
         <TextInput
           style={styles.input}
           placeholder="Age"
@@ -179,8 +210,11 @@ export default function EditProfile() {
           keyboardType="numeric"
           onChangeText={(text) => setProfile({ ...profile, age: text })}
         />
+
+        {/* Gender */}
+        <Text style={styles.label}>Gender</Text>
         <TextInput
-          style={styles.input}
+          style={[styles.input, styles.disabledInput]}
           placeholder="Gender"
           value={profile.gender}
           onChangeText={(text) => setProfile({ ...profile, gender: text })}
@@ -189,6 +223,8 @@ export default function EditProfile() {
 
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>Physical Metrics</Text>
+
+        <Text style={styles.label}>Height (cm) & Weight (kg)</Text>
         <View style={styles.row}>
           <TextInput
             style={styles.smallInput}
@@ -205,6 +241,20 @@ export default function EditProfile() {
             onChangeText={(text) => setProfile({ ...profile, weight: text })}
           />
         </View>
+      </View>
+
+      <View style={styles.card}>
+        {/* BMI */}
+<Text style={styles.label}>BMI</Text>
+<TextInput
+  style={[styles.input, styles.disabledInput]}
+  value={calculateBMI()}
+  editable={false}
+/>
+         <Text style={{ color: "#6B7280", marginBottom: 10 }}>
+  {getBMICategory()}
+</Text>
+
       </View>
 
       <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>

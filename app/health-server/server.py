@@ -5,6 +5,7 @@ from inference import predict_image
 
 # import your router
 from auth.routes import router as user_router  
+from core.routes import router as core_router
 
 app = FastAPI()
 
@@ -21,6 +22,7 @@ app.add_middleware(
 )
 
 app.include_router(user_router)
+app.include_router(core_router)
 
 # Existing endpoint
 @app.post("/predict-mood")

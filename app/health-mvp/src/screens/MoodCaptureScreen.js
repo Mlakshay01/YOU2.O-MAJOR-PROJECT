@@ -10,7 +10,7 @@ import { HIGH_AROUSAL_CONFIRM } from "../logic/moodLogic";
 import { upsertMoodEntry } from "../storage/moodStorage";
 import { useRouter } from "expo-router";
 
-const SERVER_BASE_URL = "http://10.241.113.80:8000"; 
+const SERVER_BASE_URL = "http://localhost:8000"; 
 
 
 export default function MoodCaptureScreen() {
