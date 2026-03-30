@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Header
+from fastapi import APIRouter, HTTPException, Header,UploadFile, File
 from pydantic import BaseModel
 from auth.user_model import create_user, authenticate_user, verify_token, users_collection
 from bson import ObjectId
@@ -78,3 +78,15 @@ def update_current_user(data: UpdateProfileModel, token: str = Header(...)):
         updated_user.pop("password", None)
     updated_user.pop("password", None)
     return {"user": updated_user}
+
+    from fastapi import APIRouter, UploadFile, File
+from food.inference import predict_food
+
+
+
+@router.post("/predict-food")
+async def predict_food_api(image: UploadFile = File(...)):
+    image_bytes = await image.read()
+    return predict_food(image_bytes)
+
+
