@@ -20,8 +20,13 @@ import DiseaseRiskSection from "@/src/components/DiseaseRiskSection";
 
 import { Ionicons } from "@expo/vector-icons";
 import { TouchableOpacity } from "react-native";
+import * as ImagePicker from "expo-image-picker";
 
-const BASE_URL = "http://localhost:8000";
+// const BASE_URL = "http://localhost:8000";
+
+const API_URL = "http://192.168.1.16:8000"; // ⚠️ replace with your IP
+
+
 
 interface MoodEntry {
   date: string;
@@ -35,6 +40,17 @@ interface Breakdown {
   sedentary?: { avg: number; impact: number; weighted_impact: number };
   water?:     { avg: number; impact: number; weighted_impact: number };
   mood?:      { dominant: string; impact: number; weighted_impact: number };
+}
+
+interface FoodData {
+  food: string;
+  confidence: number;
+  nutrition?: {
+    calories?: number;
+    protein?: number;
+    carbs?: number;
+    fat?: number;
+  };
 }
 
 const scoreColor = (s: number | null) => {
@@ -61,6 +77,8 @@ export default function DashboardScreen() {
 
   const [wellness, setWellness]     = useState<number | null>(null);
   const [breakdown, setBreakdown]   = useState<Breakdown>({});
+  const [foodData, setFoodData] = useState<FoodData | null>(null);
+
 
   const fetchWellness = useCallback(async () => {
     try {
@@ -73,6 +91,44 @@ export default function DashboardScreen() {
       console.log("Wellness fetch error:", err);
     }
   }, []);
+
+  
+const captureFood = async () => {
+  const result = await ImagePicker.launchImageLibraryAsync({
+    mediaTypes: ImagePicker.MediaTypeOptions.Images,
+    quality: 1,
+  });
+
+  if (!result.canceled && result.assets?.length) {
+    const uri: string = result.assets[0].uri; // ✅ typed
+
+    try {
+      const data = await predictFood(uri);
+      setFoodData(data);
+    } catch (err) {
+      console.log("Food API error:", err);
+      console.log("api url:",API_URL);
+      alert("Food detection failed ❌");
+    }
+  }
+};
+
+
+const predictFood = async (imageUri: string) => {
+  const formData = new FormData();
+
+  //  Convert to blob (FIX for web)
+  const response = await fetch(imageUri);
+  const blob = await response.blob();
+
+  formData.append("image", blob, "food.jpg");
+
+  const res = await axios.post(`${API_URL}/predict-food`, formData);
+
+  return res.data;
+};
+
+
 
   const load = useCallback(async () => {
     const mood = await getMoodEntries();
@@ -122,6 +178,9 @@ export default function DashboardScreen() {
         water:      act?.water || 0,
         water_logs: act?.waterLogs || [],
         mood:       moodText || null,
+        food: foodData?.food,
+  confidence: foodData?.confidence,
+  nutrition: foodData?.nutrition
       }, { headers: { token } });
 
       // 4. Update wellness score from response — NO load() call here
@@ -245,6 +304,47 @@ export default function DashboardScreen() {
           )}
         </InputCard>
       </View>
+
+      {/* FOOD CARD */}
+<InputCard title="Food">
+  {foodData ? (
+    <View>
+      <Text style={{ fontWeight: "700", fontSize: 13 }}>
+        {foodData.food}
+      </Text>
+
+      <Text style={{ fontSize: 11, color: "#6B7280" }}>
+        Confidence: {foodData.confidence?.toFixed(2)}
+      </Text>
+
+      {foodData.nutrition && (
+        <View style={{ marginTop: 6 }}>
+          <Text style={{ fontSize: 11 }}>Calories: {foodData.nutrition.calories}</Text>
+          <Text style={{ fontSize: 11 }}>Protein: {foodData.nutrition.protein}</Text>
+          <Text style={{ fontSize: 11 }}>Carbs: {foodData.nutrition.carbs}</Text>
+          <Text style={{ fontSize: 11 }}>Fat: {foodData.nutrition.fat}</Text>
+        </View>
+      )}
+
+      <TouchableOpacity
+        onPress={captureFood}
+        style={{
+          marginTop: 6,
+          backgroundColor: "#F3F4F6",
+          padding: 6,
+          borderRadius: 10,
+          alignSelf: "flex-start",
+        }}
+      >
+        <Text style={{ fontSize: 11 }}>Edit</Text>
+      </TouchableOpacity>
+    </View>
+  ) : (
+    <Pressable onPress={captureFood} style={buttonSmall}>
+      <Text style={{ color: "#fff" }}>Capture</Text>
+    </Pressable>
+  )}
+</InputCard>
 
       {/* PROCESS BUTTON */}
       <Pressable

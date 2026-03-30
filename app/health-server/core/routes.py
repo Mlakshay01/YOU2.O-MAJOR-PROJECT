@@ -19,7 +19,62 @@ class ActivityModel(BaseModel):
     water: int = 0
     water_logs: list = []
     mood: str = None
+    food: str = None
+    confidence: float = None
+    nutrition: dict = None
+    
 
+
+# @router.post("/activity")
+# def save_activity(data: ActivityModel, token: str = Header(...)):
+#     user, err = verify_token(token)
+#     if err:
+#         raise HTTPException(status_code=401, detail=err)
+
+#     try:
+#         uid = ObjectId(user["_id"])
+
+#         # 1. Save today's activity
+#         upsert_daily_activity(user["_id"], data.dict())\
+
+        
+
+#         # 2. Fetch last 28 days to compute wellness score
+#         end_date   = datetime.now(timezone.utc).date()
+#         start_date = end_date - timedelta(days=27)  # 28 days inclusive
+
+#         records = list(activity_collection.find(
+#             {
+#                 "user_id": uid,
+#                 "date": {"$gte": str(start_date), "$lte": str(end_date)}
+#             },
+#             {"_id": 0, "steps": 1, "sleep": 1, "sedentary": 1, "water": 1, "mood": 1}
+#         ))
+
+#         # 3. Compute score from real data only (nulls excluded inside scorer)
+#         result = compute_wellness_score(records)
+
+#         # 4. Upsert score into a separate collection (one doc per user)
+#         from core.db import db
+#         db["wellness_scores"].update_one(
+#             {"user_id": uid},
+#             {"$set": {
+#                 "user_id":   uid,
+#                 "score":     result["score"],
+#                 "breakdown": result["breakdown"],
+#                 "updated_at": datetime.now(timezone.utc).isoformat(),
+#             }},
+#             upsert=True
+#         )
+
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=str(e))
+
+#     return {
+#         "message":   "Saved",
+#         "wellness":  result["score"],
+#         "breakdown": result["breakdown"],
+#     }
 
 @router.post("/activity")
 def save_activity(data: ActivityModel, token: str = Header(...)):
@@ -30,12 +85,32 @@ def save_activity(data: ActivityModel, token: str = Header(...)):
     try:
         uid = ObjectId(user["_id"])
 
-        # 1. Save today's activity
-        upsert_daily_activity(user["_id"], data.dict())
+        # 🔥 Convert incoming data
+        activity_data = data.dict()
 
-        # 2. Fetch last 28 days to compute wellness score
+        # ✅ STRUCTURE FOOD PROPERLY (SAFE)
+        food_name = activity_data.get("food")
+        confidence = activity_data.get("confidence")
+        nutrition = activity_data.get("nutrition")
+
+        if food_name:
+            activity_data["food"] = {
+                "name": food_name,
+                "confidence": confidence,
+                "nutrition": nutrition
+            }
+
+        #  remove flat fields (avoid duplication)
+        activity_data.pop("confidence", None)
+        activity_data.pop("nutrition", None)
+
+        # ✅ Save to DB
+        upsert_daily_activity(user["_id"], activity_data)
+
+        # ------------------- EXISTING LOGIC -------------------
+
         end_date   = datetime.now(timezone.utc).date()
-        start_date = end_date - timedelta(days=27)  # 28 days inclusive
+        start_date = end_date - timedelta(days=27)
 
         records = list(activity_collection.find(
             {
@@ -45,16 +120,14 @@ def save_activity(data: ActivityModel, token: str = Header(...)):
             {"_id": 0, "steps": 1, "sleep": 1, "sedentary": 1, "water": 1, "mood": 1}
         ))
 
-        # 3. Compute score from real data only (nulls excluded inside scorer)
         result = compute_wellness_score(records)
 
-        # 4. Upsert score into a separate collection (one doc per user)
         from core.db import db
         db["wellness_scores"].update_one(
             {"user_id": uid},
             {"$set": {
-                "user_id":   uid,
-                "score":     result["score"],
+                "user_id": uid,
+                "score": result["score"],
                 "breakdown": result["breakdown"],
                 "updated_at": datetime.now(timezone.utc).isoformat(),
             }},
@@ -65,11 +138,10 @@ def save_activity(data: ActivityModel, token: str = Header(...)):
         raise HTTPException(status_code=500, detail=str(e))
 
     return {
-        "message":   "Saved",
-        "wellness":  result["score"],
+        "message": "Saved",
+        "wellness": result["score"],
         "breakdown": result["breakdown"],
     }
-
 
 @router.get("/activity")
 def get_activity(token: str = Header(...)):

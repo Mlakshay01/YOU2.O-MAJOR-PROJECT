@@ -4,8 +4,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from inference import predict_image
 
 # import your router
-from auth.routes import router as user_router  
-from core.routes import router as core_router
+# from auth.routes import router as user_router
+
 
 app = FastAPI()
 
@@ -23,9 +23,11 @@ app.add_middleware(
 
 app.include_router(user_router)
 app.include_router(core_router)
+app.include_router(food_router)
 
 # Existing endpoint
 @app.post("/predict-mood")
 async def predict_mood(image: UploadFile = File(...)):
     image_bytes = await image.read()
     return predict_image(image_bytes)
+
