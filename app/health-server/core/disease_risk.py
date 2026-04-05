@@ -122,6 +122,23 @@ def bmi_impact(bmi: float) -> float:
     return -1.0
 
 
+def food_impact(avg_calories: Optional[float]) -> Optional[float]:
+    """
+    Converts calorie intake → impact (-1 to +1)
+
+    Ideal: ~1800–2200 kcal
+    """
+    if avg_calories is None:
+        return None
+
+    if avg_calories < 1500:
+        return 0.5   # slightly healthy
+    if avg_calories <= 2200:
+        return 1.0   # optimal
+    if avg_calories <= 2800:
+        return 0.0   # neutral
+    return -1.0      # unhealthy (high calories)
+
 # ── Weighted score builders ───────────────────────────────────────────────────
 
 def _weighted_impact(
@@ -160,6 +177,7 @@ def _weighted_impact(
             "weight":           weights[key],
             "effective_weight": round(eff_w, 4),
             "contribution":     round(contrib, 4),
+            "avg": None,
         }
 
     return weighted_sum, total_w, contributions
@@ -173,6 +191,7 @@ DIABETES_WEIGHTS = {
     "sleep":     0.25,
     "steps":     0.15,
     "water":     0.05,
+     "food":      0.15,
 }
 
 HEART_WEIGHTS = {
@@ -181,6 +200,7 @@ HEART_WEIGHTS = {
     "sedentary": 0.20,
     "bmi":       0.15,
     "water":     0.10,
+     "food":      0.15,
 }
 
 OBESITY_WEIGHTS = {
@@ -189,6 +209,7 @@ OBESITY_WEIGHTS = {
     "sedentary": 0.20,
     "sleep":     0.10,
     "water":     0.05,
+     "food":      0.20,
 }
 
 
@@ -198,6 +219,7 @@ def diabetes_risk(
     sedentary_impact: Optional[float],
     water_impact: Optional[float],
     bmi: Optional[float],
+    food_imp: Optional[float] = None,
     sigmoid_k: float = 2.5,
 ) -> dict:
     """
@@ -220,6 +242,7 @@ def diabetes_risk(
         "sleep":     sleep_impact,
         "steps":     steps_impact,
         "water":     water_impact,
+        "food":      food_imp,
     }
 
     norm_impact, _, contributions = _weighted_impact(impacts, DIABETES_WEIGHTS)
@@ -240,6 +263,7 @@ def heart_disease_risk(
     sedentary_impact: Optional[float],
     water_impact: Optional[float],
     bmi: Optional[float],
+    food_imp: Optional[float] = None,
     sigmoid_k: float = 2.5,
 ) -> dict:
     """
@@ -262,6 +286,7 @@ def heart_disease_risk(
         "sedentary": sedentary_impact,
         "bmi":       bmi_imp,
         "water":     water_impact,
+         "food":      food_imp,
     }
 
     norm_impact, _, contributions = _weighted_impact(impacts, HEART_WEIGHTS)
@@ -280,6 +305,7 @@ def obesity_risk(
     sedentary_impact: Optional[float],
     water_impact: Optional[float],
     bmi: Optional[float],
+    food_imp: Optional[float] = None,
     sigmoid_k: float = 2.5,
 ) -> dict:
     """
@@ -306,6 +332,7 @@ def obesity_risk(
         "sedentary": sedentary_impact,
         "sleep":     sleep_impact,
         "water":     water_impact,
+         "food":      food_imp,
     }
 
     norm_impact, _, contributions = _weighted_impact(impacts, OBESITY_WEIGHTS)
@@ -331,6 +358,8 @@ def compute_disease_risks(
     steps_imp: Optional[float] = None,
     sedentary_imp: Optional[float] = None,
     water_imp: Optional[float] = None,
+    avg_calories: Optional[float] = None,
+    food_imp: Optional[float] = None,
 ) -> dict:
     """
     Single entry point. Accepts raw averages OR pre-computed impacts.
@@ -349,18 +378,34 @@ def compute_disease_risks(
         steps_impact as _steps_imp,
         sedentary_impact as _sed_imp,
         water_impact as _water_imp,
+        food_impact as _food_imp,
     )
 
     s_imp  = sleep_imp     if sleep_imp     is not None else (_sleep_imp(avg_sleep)           if avg_sleep     is not None else None)
     st_imp = steps_imp     if steps_imp     is not None else (_steps_imp(int(avg_steps))      if avg_steps     is not None else None)
     se_imp = sedentary_imp if sedentary_imp is not None else (_sed_imp(avg_sedentary)         if avg_sedentary is not None else None)
     w_imp  = water_imp     if water_imp     is not None else (_water_imp(int(avg_water))      if avg_water     is not None else None)
+    f_imp  = food_imp if food_imp is not None else (food_impact(avg_calories) if avg_calories is not None else None)
 
-    return {
-        "diabetes":      diabetes_risk(s_imp, st_imp, se_imp, w_imp, bmi),
-        "heart_disease": heart_disease_risk(s_imp, st_imp, se_imp, w_imp, bmi),
-        "obesity":       obesity_risk(s_imp, st_imp, se_imp, w_imp, bmi),
-    }
+#     return {
+#     "diabetes": diabetes_risk(s_imp, st_imp, se_imp, w_imp, bmi, f_imp),
+#     "heart_disease": heart_disease_risk(s_imp, st_imp, se_imp, w_imp, bmi, f_imp),
+#     "obesity": obesity_risk(s_imp, st_imp, se_imp, w_imp, bmi, f_imp),
+# }
+   
+    results = {
+    "diabetes": diabetes_risk(s_imp, st_imp, se_imp, w_imp, bmi, f_imp),
+    "heart_disease": heart_disease_risk(s_imp, st_imp, se_imp, w_imp, bmi, f_imp),
+    "obesity": obesity_risk(s_imp, st_imp, se_imp, w_imp, bmi, f_imp),
+}
+
+# 🔥 Inject avg calories into food contribution
+    for disease in results.values():
+        if "food" in disease["contributions"]:
+            disease["contributions"]["food"]["avg"] = avg_calories
+
+    
+    return results
 
 
 # ── Helper ────────────────────────────────────────────────────────────────────

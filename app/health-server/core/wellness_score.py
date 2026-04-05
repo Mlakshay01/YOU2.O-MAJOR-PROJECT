@@ -74,6 +74,7 @@ WEIGHTS = {
     "mood":      0.20,
     "sedentary": 0.15,
     "water":     0.10,
+    "food":      0.15, 
 }
 
 # ── Mood helpers (mirrors moodConstants.js) ───────────────────────────────────
@@ -206,6 +207,28 @@ def water_impact(ml: int) -> float:
     return 1.0
 
 
+
+def food_impact(calories: float) -> float:
+    """
+    Calories impact (daily average)
+
+    Ideal: 1800–2200 kcal
+
+    Regions:
+      ≤1500       → +0.5 (slightly healthy)
+      1500–2200   → +1.0 (optimal)
+      2200–2800   → 0.0 (neutral)
+      ≥2800       → -1.0 (high risk)
+    """
+    if calories <= 1500:
+        return 0.5
+    if calories <= 2200:
+        return 1.0
+    if calories <= 2800:
+        return 0.0
+    return -1.0
+
+
 # ── Master scorer ─────────────────────────────────────────────────────────────
 
 def compute_wellness_score(records: list) -> dict:
@@ -235,12 +258,18 @@ def compute_wellness_score(records: list) -> dict:
     sedentary_vals = [r["sedentary"] for r in records if r.get("sedentary") is not None]
     water_vals     = [r["water"]     for r in records if r.get("water")     is not None]
     mood_vals      = [r["mood"]      for r in records if r.get("mood")      is not None]
+    food_vals = [
+    r.get("food", {}).get("nutrition", {}).get("calories")
+    for r in records
+    if r.get("food") and r.get("food", {}).get("nutrition", {}).get("calories") is not None
+]
 
     # ── Compute averages (None if no data) ────────────────────────
     avg_sleep     = sum(sleep_vals)     / len(sleep_vals)     if sleep_vals     else None
     avg_steps     = sum(steps_vals)     / len(steps_vals)     if steps_vals     else None
     avg_sedentary = sum(sedentary_vals) / len(sedentary_vals) if sedentary_vals else None
     avg_water     = sum(water_vals)     / len(water_vals)     if water_vals     else None
+    avg_calories = sum(food_vals) / len(food_vals) if food_vals else None
 
     mood_impacts  = [mood_impact(m) for m in mood_vals]
     avg_mood_imp  = sum(mood_impacts) / len(mood_impacts) if mood_impacts else None
@@ -257,6 +286,11 @@ def compute_wellness_score(records: list) -> dict:
         "sedentary": (sedentary_impact(avg_sedentary) if avg_sedentary is not None else None, avg_sedentary, WEIGHTS["sedentary"]),
         "water":     (water_impact(int(avg_water))    if avg_water     is not None else None, avg_water,     WEIGHTS["water"]),
         "mood":      (avg_mood_imp,                                                            None,          WEIGHTS["mood"]),
+        "food": (
+    food_impact(avg_calories) if avg_calories is not None else None,
+    avg_calories,
+    WEIGHTS["food"]
+),
     }
 
     # ── Weighted sum — skip missing metrics, redistribute weight ──
