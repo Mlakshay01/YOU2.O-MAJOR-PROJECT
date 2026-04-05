@@ -1,5 +1,10 @@
 # server.py
-from fastapi import FastAPI, UploadFile, File
+from fastapi import FastAPI
+from auth.routes import router as user_router
+from core.routes import router as core_router
+from auth.routes import router as food_router
+
+from fastapi import UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from inference import predict_image
 
