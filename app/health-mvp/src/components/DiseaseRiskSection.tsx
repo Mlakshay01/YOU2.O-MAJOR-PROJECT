@@ -75,6 +75,7 @@ const METRIC_LABELS: Record<string, string> = {
   water:     "Water Intake",
   bmi:       "BMI",
   mood:      "Mood",
+  food: "Food Intake",
 };
 
 const METRIC_UNITS: Record<string, string> = {
@@ -83,6 +84,7 @@ const METRIC_UNITS: Record<string, string> = {
   steps:     " steps",
   water:     " ml",
   bmi:       "",
+  food:      " kcal",
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

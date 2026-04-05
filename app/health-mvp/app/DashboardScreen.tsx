@@ -22,7 +22,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { TouchableOpacity } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 
-// const BASE_URL = "http://localhost:8000";
+const BASE_URL = "http://localhost:8000";
 
 const API_URL = "http://192.168.1.16:8000"; // ⚠️ replace with your IP
 
@@ -40,6 +40,7 @@ interface Breakdown {
   sedentary?: { avg: number; impact: number; weighted_impact: number };
   water?:     { avg: number; impact: number; weighted_impact: number };
   mood?:      { dominant: string; impact: number; weighted_impact: number };
+  food?:      { avg: number; impact: number; weighted_impact: number };
 }
 
 interface FoodData {
@@ -83,6 +84,7 @@ export default function DashboardScreen() {
   const fetchWellness = useCallback(async () => {
     try {
       const token = await AsyncStorage.getItem("token");
+      console.log("TOKEN:", token);
       if (!token) return;
       const res = await axios.get(`${BASE_URL}/wellness`, { headers: { token } });
       setWellness(res.data.score ?? null);
@@ -178,9 +180,9 @@ const predictFood = async (imageUri: string) => {
         water:      act?.water || 0,
         water_logs: act?.waterLogs || [],
         mood:       moodText || null,
-        food: foodData?.food,
-  confidence: foodData?.confidence,
-  nutrition: foodData?.nutrition
+  food: foodData?.food ?? null,
+    confidence: foodData?.confidence ?? null,
+    nutrition: foodData?.nutrition ?? null,
       }, { headers: { token } });
 
       // 4. Update wellness score from response — NO load() call here
@@ -199,7 +201,9 @@ const predictFood = async (imageUri: string) => {
     } catch (err: any) {
       console.log("❌ Sync error:", err?.response?.data || err.message);
       alert("Saved locally but failed to sync to server ❌");
-    } finally {
+    }
+    
+    finally {
       setIsSaving(false);
     }
   };
@@ -251,6 +255,14 @@ const predictFood = async (imageUri: string) => {
             {breakdown.mood && (
               <BreakdownPill label="Mood" value={breakdown.mood.dominant ?? "—"} impact={breakdown.mood.impact} color="#A78BFA" />
             )}
+            {breakdown.food && (
+  <BreakdownPill
+    label="Food"
+    value={`${breakdown.food.avg} kcal`}
+    impact={breakdown.food.impact}
+    color="#EF4444"
+  />
+)}
           </View>
         )}
         <Text style={{ fontSize: 11, color: "#9CA3AF", marginTop: 8 }}>

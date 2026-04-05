@@ -23,6 +23,7 @@ interface DayStat {
   sedentary: number | null;
   water:     number | null;
   mood:      string | null;
+  calories: number | null;
 }
 
 const MOOD_COLORS: Record<string, string> = {
@@ -306,6 +307,12 @@ export default function StatsSection() {
           <MetricChart title="Sleep"          dataKey="sleep"     unit="hrs"   color="#6366F1" />
           <MetricChart title="Sedentary Time" dataKey="sedentary" unit="hrs"   color="#F59E0B" />
           <MetricChart title="Water Intake"   dataKey="water"     unit="ml"    color="#38BDF8" />
+          <MetricChart
+  title="Food (Calories)"
+  dataKey="calories"
+  unit="kcal"
+  color="#EF4444"
+/>
           <MoodDots />
         </>
       )}

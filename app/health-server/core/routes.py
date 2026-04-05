@@ -117,7 +117,7 @@ def save_activity(data: ActivityModel, token: str = Header(...)):
                 "user_id": uid,
                 "date": {"$gte": str(start_date), "$lte": str(end_date)}
             },
-            {"_id": 0, "steps": 1, "sleep": 1, "sedentary": 1, "water": 1, "mood": 1}
+            {"_id": 0, "steps": 1, "sleep": 1, "sedentary": 1, "water": 1, "mood": 1, "food": 1}
         ))
 
         result = compute_wellness_score(records)
@@ -174,7 +174,7 @@ def get_activity_stats(days: int = Query(7), token: str = Header(...)):
             "date": {"$gte": str(start_date), "$lte": str(end_date)}
         },
         {"_id": 0, "date": 1, "steps": 1, "sleep": 1,
-         "sedentary": 1, "water": 1, "mood": 1}
+         "sedentary": 1, "water": 1, "mood": 1, "food": 1}
     ))
 
     by_date = {r["date"]: r for r in records}
@@ -190,6 +190,12 @@ def get_activity_stats(days: int = Query(7), token: str = Header(...)):
             "sedentary": rec.get("sedentary") if has_data else None,
             "water":     rec.get("water")     if has_data else None,
             "mood":      rec.get("mood")      if has_data else None,
+
+            "calories": (
+        rec.get("food", {}).get("nutrition", {}).get("calories")
+        if has_data and rec.get("food")
+        else None
+    ),
         })
 
     return {"data": result}
@@ -245,7 +251,7 @@ def get_disease_risk(token: str = Header(...)):
             "user_id": uid,
             "date": {"$gte": str(start_date), "$lte": str(end_date)}
         },
-        {"_id": 0, "steps": 1, "sleep": 1, "sedentary": 1, "water": 1}
+        {"_id": 0, "steps": 1, "sleep": 1, "sedentary": 1, "water": 1, "food": 1}
     ))
 
     # Only average non-null values (same pattern as wellness score)
@@ -257,6 +263,23 @@ def get_disease_risk(token: str = Header(...)):
     avg_steps     = safe_avg("steps")
     avg_sedentary = safe_avg("sedentary")
     avg_water     = safe_avg("water")
+    # 🔥 ADD HERE (exactly after avg_water)
+
+    food_vals = []
+
+    for r in records:
+        food = r.get("food")
+        if food and isinstance(food, dict):
+            nutrition = food.get("nutrition")
+            if nutrition and isinstance(nutrition, dict):
+                calories = nutrition.get("calories")
+                if calories is not None:
+                    food_vals.append(calories)
+
+    avg_cal = sum(food_vals) / len(food_vals) if food_vals else None
+
+    print("FOOD VALS:", food_vals)
+    print("AVG CAL:", avg_cal)
 
     # ── Fetch BMI from user profile ───────────────────────────────
     from core.db import db
@@ -274,6 +297,7 @@ def get_disease_risk(token: str = Header(...)):
         avg_steps=avg_steps,
         avg_sedentary=avg_sedentary,
         avg_water=avg_water,
+        avg_calories=avg_cal,
         bmi=bmi,
     )
 
