@@ -24,7 +24,7 @@ import * as ImagePicker from "expo-image-picker";
 
 const BASE_URL = "http://localhost:8000";
 
-const API_URL = "http://192.168.1.16:8000"; // ⚠️ replace with your IP
+const API_URL = "http://localhost:8000"; // ⚠️ replace with your IP
 
 
 
@@ -79,6 +79,21 @@ export default function DashboardScreen() {
   const [wellness, setWellness]     = useState<number | null>(null);
   const [breakdown, setBreakdown]   = useState<Breakdown>({});
   const [foodData, setFoodData] = useState<FoodData | null>(null);
+
+  const [streak, setStreak] = useState<{ current_streak: number; longest_streak: number; grace_used: boolean } | null>(null);
+
+const fetchStreak = useCallback(async () => {
+  try {
+    const token = await AsyncStorage.getItem("token");
+    if (!token) return;
+    // update streak on load
+    await axios.post(`${BASE_URL}/streak/login`, {}, { headers: { token } });
+    const res = await axios.get(`${BASE_URL}/streak`, { headers: { token } });
+    setStreak(res.data);
+  } catch (err) {
+    console.log("Streak fetch error:", err);
+  }
+}, []);
 
 
   const fetchWellness = useCallback(async () => {
@@ -145,7 +160,8 @@ const predictFood = async (imageUri: string) => {
   useFocusEffect(useCallback(() => {
     load();
     fetchWellness();
-  }, [load, fetchWellness]));
+    fetchStreak();
+  }, [load, fetchWellness, fetchStreak]));
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -269,6 +285,33 @@ const predictFood = async (imageUri: string) => {
           Based on your last 28 days · updates on process
         </Text>
       </View>
+
+      {/* STREAK CARD */}
+{streak !== null && (
+  <View style={{ ...card, flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+    <View>
+      <Text style={title}>Daily Streak 🔥</Text>
+      <Text style={{ fontSize: 11, color: "#9CA3AF" }}>
+        {streak.grace_used ? "⚠️ Grace day active" : "Keep it going!"}
+      </Text>
+    </View>
+    <View style={{ flexDirection: "row", gap: 20, alignItems: "center" }}>
+      <View style={{ alignItems: "center" }}>
+        <Text style={{ fontSize: 28, fontWeight: "900", color: "#F59E0B" }}>
+          {streak.current_streak}
+        </Text>
+        <Text style={{ fontSize: 10, color: "#6B7280" }}>Current</Text>
+      </View>
+      <View style={{ width: 1, height: 36, backgroundColor: "#E5E7EB" }} />
+      <View style={{ alignItems: "center" }}>
+        <Text style={{ fontSize: 28, fontWeight: "900", color: "#2a8c82" }}>
+          {streak.longest_streak}
+        </Text>
+        <Text style={{ fontSize: 10, color: "#6B7280" }}>Best</Text>
+      </View>
+    </View>
+  </View>
+)}
 
       {/* HYDRATION */}
       <View style={card}>

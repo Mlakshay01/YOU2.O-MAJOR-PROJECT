@@ -1,4 +1,5 @@
-from fastapi import APIRouter, HTTPException, Header, Query
+from fastapi import APIRouter, HTTPException, Header, Query, UploadFile, File
+
 from pydantic import BaseModel
 from datetime import datetime, timedelta, timezone
 from bson import ObjectId
@@ -6,6 +7,9 @@ from auth.user_model import verify_token
 from core.activity_model import upsert_daily_activity, get_user_activity, activity_collection
 from core.wellness_score import compute_wellness_score
 from core.disease_risk import compute_disease_risks
+
+from food.inference import predict_food
+from core.streak_model import update_streak, get_streak
 
 router = APIRouter()
 
@@ -306,3 +310,39 @@ def get_disease_risk(token: str = Header(...)):
         "window": f"{start_date} to {end_date}",
         "risks":  risks,
     }
+
+
+#-----------------------food predict route-------------
+@router.post("/predict-food")
+async def predict_food_api(image: UploadFile = File(...)):
+    image_bytes = await image.read()
+    return predict_food(image_bytes)
+
+
+# ================= STREAK =================
+
+@router.post("/streak/login")
+def record_login(token: str = Header(...)):
+    """
+    Call this on every app launch / login.
+    Updates the streak and returns current + longest.
+    """
+    user, err = verify_token(token)
+    if err:
+        raise HTTPException(status_code=401, detail=err)
+
+    result = update_streak(user["_id"])
+    return result
+
+
+@router.get("/streak")
+def get_user_streak(token: str = Header(...)):
+    """
+    Returns streak data without updating it.
+    Use for dashboard display.
+    """
+    user, err = verify_token(token)
+    if err:
+        raise HTTPException(status_code=401, detail=err)
+
+    return get_streak(user["_id"])
