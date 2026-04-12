@@ -287,8 +287,9 @@ def get_disease_risk(token: str = Header(...)):
 
     # ── Fetch BMI from user profile ───────────────────────────────
     from core.db import db
-    user_doc = db["users"].find_one({"_id": uid}, {"height": 1, "weight": 1})
+    user_doc = db["users"].find_one({"_id": uid}, {"height": 1, "weight": 1,"age": 1, "gender": 1})
     bmi = None
+    ideal_cal = None
     if user_doc:
         h = user_doc.get("height")  # cm
         w = user_doc.get("weight")  # kg
@@ -305,10 +306,26 @@ def get_disease_risk(token: str = Header(...)):
         bmi=bmi,
     )
 
+    # return {
+    #     "bmi":    bmi,
+    #     "window": f"{start_date} to {end_date}",
+    #     "risks":  risks,
+    # }
+
+    calorie_ratio = (
+    round(avg_cal / ideal_cal, 2)
+    if avg_cal is not None and ideal_cal is not None
+    else None )
+
     return {
         "bmi":    bmi,
         "window": f"{start_date} to {end_date}",
         "risks":  risks,
+         "nutrition_insights": {
+            "avg_calories": avg_cal,
+            "ideal_calories": ideal_cal,
+            "calorie_ratio": calorie_ratio
+        }
     }
 
 
@@ -346,3 +363,7 @@ def get_user_streak(token: str = Header(...)):
         raise HTTPException(status_code=401, detail=err)
 
     return get_streak(user["_id"])
+
+        
+       
+    

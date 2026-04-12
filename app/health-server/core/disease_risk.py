@@ -122,27 +122,55 @@ def bmi_impact(bmi: float) -> float:
     return -1.0
 
 
-def food_impact(avg_calories: Optional[float]) -> Optional[float]:
-    """
-    Converts calorie intake → impact (-1 to +1)
+# def food_impact(avg_calories: Optional[float]) -> Optional[float]:
+#     """
+#     Converts calorie intake → impact (-1 to +1)
 
-    Evidence: WHO dietary guidelines, Hall et al. Cell Metabolism 2019
-    Ideal range: ~1600-2200 kcal (varies by sex/activity but this is population avg)
-    """
+#     Ideal: ~1800–2200 kcal
+#     """
+#     if avg_calories is None:
+#         return None
+
+#     if avg_calories < 1500:
+#         return 0.5   # slightly healthy
+#     if avg_calories <= 2200:
+#         return 1.0   # optimal
+#     if avg_calories <= 2800:
+#         return 0.0   # neutral
+#     return -1.0      # unhealthy (high calories)
+
+def food_impact(
+    avg_calories: Optional[float],
+    ideal_calories: Optional[float] = None
+) -> Optional[float]:
+    
+
+    # Evidence: WHO dietary guidelines, Hall et al. Cell Metabolism 2019
+    # Ideal range: ~1600-2200 kcal (varies by sex/activity but this is population avg)
+    # """
     if avg_calories is None:
         return None
 
-    if avg_calories < 1200:
-        return -1.0   # severe under-eating → metabolic damage, malnutrition
+    # ✅ CASE 1: Personalized (BEST)
+    if ideal_calories:
+        ratio = avg_calories / ideal_calories
+
+        if ratio < 0.8:
+            return 0.5
+        if 0.8 <= ratio <= 1.1:
+            return 1.0
+        if 1.1 < ratio <= 1.3:
+            return 0.0
+        return -1.0
+
+    # CASE 2: Fallback (no user data)
     if avg_calories < 1500:
-        return -0.3   # mild under-eating → micronutrient deficiency risk
+        return 0.5
     if avg_calories <= 2200:
-        return 1.0    # optimal range
-    if avg_calories <= 2600:
-        return 0.0    # mild excess → neutral/borderline
-    if avg_calories <= 3000:
-        return -0.5   # moderate excess → weight gain risk
-    return -1.0       # severe excess → high disease risk
+        return 1.0
+    if avg_calories <= 2800:
+        return 0.0
+    return -1.0
 
 # ── Weighted score builders ───────────────────────────────────────────────────
 
