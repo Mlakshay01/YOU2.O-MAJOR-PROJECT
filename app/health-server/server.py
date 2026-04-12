@@ -4,6 +4,10 @@ from auth.routes import router as user_router
 from core.routes import router as core_router
 from fastapi.middleware.cors import CORSMiddleware
 from inference import predict_image
+from analysis.routes import router as analysis_router
+
+from dotenv import load_dotenv
+load_dotenv()
 
 app = FastAPI()
 
@@ -19,6 +23,7 @@ app.add_middleware(
 
 app.include_router(user_router)
 app.include_router(core_router)  # handles /activity, /wellness, /risk, /predict-food, /streak
+app.include_router(analysis_router)
 
 @app.post("/predict-mood")
 async def predict_mood(image: UploadFile = File(...)):

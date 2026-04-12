@@ -68,13 +68,14 @@
 #   Sedentary  15%  — independent risk factor even after adjusting for exercise
 #   Water      10%  — important but easier to correct; weaker mortality signal
 
+ 
 WEIGHTS = {
-    "sleep":     0.30,
-    "steps":     0.25,
-    "mood":      0.20,
-    "sedentary": 0.15,
-    "water":     0.10,
-    "food":      0.15, 
+    "sleep":     0.28,  # strongest single predictor (WHO/CDC)
+    "steps":     0.23,  # strong dose-response evidence
+    "mood":      0.18,  # APA: chronic negative affect predicts illness
+    "sedentary": 0.14,  # independent risk factor
+    "water":     0.08,  # important but weaker mortality signal
+    "food":      0.09,  # caloric balance — moderate independent predictor
 }
 
 # ── Mood helpers (mirrors moodConstants.js) ───────────────────────────────────
@@ -210,24 +211,30 @@ def water_impact(ml: int) -> float:
 
 def food_impact(calories: float) -> float:
     """
-    Calories impact (daily average)
-
-    Ideal: 1800–2200 kcal
-
+    Calories impact (daily average) → [-1.0, +1.0]
+ 
+    Evidence: WHO dietary guidelines; Hall et al. Cell Metabolism 2019;
+              Mozaffarian et al. NEJM 2011 (diet quality and weight gain)
+ 
     Regions:
-      ≤1500       → +0.5 (slightly healthy)
-      1500–2200   → +1.0 (optimal)
-      2200–2800   → 0.0 (neutral)
-      ≥2800       → -1.0 (high risk)
+      < 1200 kcal  → -1.0  severe under-eating: metabolic damage, malnutrition
+      1200–1500    → -0.3  mild under-eating: micronutrient deficiency risk
+      1500–2200    → +1.0  optimal range for most adults
+      2200–2600    →  0.0  mild excess: borderline/neutral
+      2600–3000    → -0.5  moderate excess: weight gain risk
+      > 3000       → -1.0  severe excess: high disease risk
     """
-    if calories <= 1500:
-        return 0.5
+    if calories < 1200:
+        return -1.0
+    if calories < 1500:
+        return -0.3
     if calories <= 2200:
         return 1.0
-    if calories <= 2800:
+    if calories <= 2600:
         return 0.0
+    if calories <= 3000:
+        return -0.5
     return -1.0
-
 
 # ── Master scorer ─────────────────────────────────────────────────────────────
 

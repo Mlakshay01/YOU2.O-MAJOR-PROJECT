@@ -126,18 +126,23 @@ def food_impact(avg_calories: Optional[float]) -> Optional[float]:
     """
     Converts calorie intake → impact (-1 to +1)
 
-    Ideal: ~1800–2200 kcal
+    Evidence: WHO dietary guidelines, Hall et al. Cell Metabolism 2019
+    Ideal range: ~1600-2200 kcal (varies by sex/activity but this is population avg)
     """
     if avg_calories is None:
         return None
 
+    if avg_calories < 1200:
+        return -1.0   # severe under-eating → metabolic damage, malnutrition
     if avg_calories < 1500:
-        return 0.5   # slightly healthy
+        return -0.3   # mild under-eating → micronutrient deficiency risk
     if avg_calories <= 2200:
-        return 1.0   # optimal
-    if avg_calories <= 2800:
-        return 0.0   # neutral
-    return -1.0      # unhealthy (high calories)
+        return 1.0    # optimal range
+    if avg_calories <= 2600:
+        return 0.0    # mild excess → neutral/borderline
+    if avg_calories <= 3000:
+        return -0.5   # moderate excess → weight gain risk
+    return -1.0       # severe excess → high disease risk
 
 # ── Weighted score builders ───────────────────────────────────────────────────
 
@@ -184,33 +189,33 @@ def _weighted_impact(
 
 
 # ── Disease-specific scorers ──────────────────────────────────────────────────
-
 DIABETES_WEIGHTS = {
-    "sedentary": 0.30,
-    "bmi":       0.25,
-    "sleep":     0.25,
-    "steps":     0.15,
-    "water":     0.05,
-     "food":      0.15,
+    "sedentary": 0.28,  # strongest lifestyle predictor (Wilmot 2012)
+    "bmi":       0.25,  # direct insulin resistance marker (Brown 2023)
+    "sleep":     0.22,  # poor sleep → glucose dysregulation (Korean ENM 2023)
+    "food":      0.15,  # caloric excess → T2D risk (Nauman 2025)
+    "steps":     0.07,  # moderate independent predictor
+    "water":     0.03,  # weak but present evidence
 }
 
 HEART_WEIGHTS = {
-    "sleep":     0.30,
-    "steps":     0.25,
-    "sedentary": 0.20,
-    "bmi":       0.15,
-    "water":     0.10,
-     "food":      0.15,
+    "sleep":     0.28,  # strongest CVD predictor (Cao 2017, Stens 2023)
+    "steps":     0.25,  # strong inverse CVD relationship (Paluch 2021)
+    "sedentary": 0.18,  # independent of exercise (Biswas 2015)
+    "food":      0.15,  # diet-CVD link well established (AHA guidelines)
+    "bmi":       0.10,  # mediated partly through other factors
+    "water":     0.04,  # hydration → blood viscosity (minor)
 }
 
 OBESITY_WEIGHTS = {
-    "bmi":       0.35,
-    "steps":     0.30,
-    "sedentary": 0.20,
-    "sleep":     0.10,
-    "water":     0.05,
-     "food":      0.20,
+    "food":      0.30,  # caloric intake is primary obesity driver (WHO 2023)
+    "bmi":       0.28,  # direct outcome measure + trajectory predictor
+    "steps":     0.20,  # energy expenditure (Paluch 2024)
+    "sedentary": 0.13,  # independent of steps (Naeini 2024)
+    "sleep":     0.07,  # sleep → leptin/ghrelin dysregulation (Antza 2021)
+    "water":     0.02,  # satiety effect is minor
 }
+
 
 
 def diabetes_risk(
@@ -387,11 +392,6 @@ def compute_disease_risks(
     w_imp  = water_imp     if water_imp     is not None else (_water_imp(int(avg_water))      if avg_water     is not None else None)
     f_imp  = food_imp if food_imp is not None else (food_impact(avg_calories) if avg_calories is not None else None)
 
-#     return {
-#     "diabetes": diabetes_risk(s_imp, st_imp, se_imp, w_imp, bmi, f_imp),
-#     "heart_disease": heart_disease_risk(s_imp, st_imp, se_imp, w_imp, bmi, f_imp),
-#     "obesity": obesity_risk(s_imp, st_imp, se_imp, w_imp, bmi, f_imp),
-# }
    
     results = {
     "diabetes": diabetes_risk(s_imp, st_imp, se_imp, w_imp, bmi, f_imp),

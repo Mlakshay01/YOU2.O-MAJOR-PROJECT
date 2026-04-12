@@ -412,6 +412,10 @@ const predictFood = async (imageUri: string) => {
         </Text>
       </Pressable>
 
+      <Pressable onPress={() => router.push("/analysis")} style={[mainButton, { backgroundColor: "#6366F1", marginTop: 10 }]}>
+  <Text style={{ color: "#fff", fontWeight: "800" }}>🧠 View AI Analysis</Text>
+</Pressable>
+
       {/* STATS + RISK SECTIONS */}
       <StatsSection />
       <DiseaseRiskSection />
