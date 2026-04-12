@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, Pressable } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { sendHydrationReminder } from "./Notifications";
 
 export default function HydrationTracker({ initialData }) {
   const [expanded, setExpanded] = useState(false);
   const [water, setWater]       = useState(initialData?.water || 0);
   const [logs, setLogs]         = useState(initialData?.waterLogs || []);
+  const [lastDrinkTime, setLastDrinkTime] = useState(Date.now());
 
   // ── KEY FIX: sync from storage directly, never from initialData prop ──────
   // initialData comes from parent's state which resets on load().
@@ -14,6 +16,55 @@ export default function HydrationTracker({ initialData }) {
   useEffect(() => {
     syncFromStorage();
   }, []);
+
+  useEffect(() => {
+  const interval = setInterval(() => {
+    syncFromStorage();   // 🔥 keeps UI updated
+  }, 3000); // every 3 sec
+
+  return () => clearInterval(interval);
+}, []);
+
+const [notified, setNotified] = useState(false);
+
+useEffect(() => {
+  const interval = setInterval(() => {
+    const now = Date.now();
+    const diff = (now - lastDrinkTime) / (1000 * 60);
+
+    if (diff >= 1 && !notified) {
+      sendHydrationReminder();
+      setNotified(true);
+    }
+  }, 60000);
+
+  return () => clearInterval(interval);
+}, [lastDrinkTime, notified]);
+
+//   useEffect(() => {
+//   const interval = setInterval(() => {
+//     const now = Date.now();
+//     const diff = (now - lastDrinkTime) / (1000 * 60); // minutes
+
+//     if (diff >= 60) {  //  1.5 hours
+//       sendHydrationReminder();
+//     }
+//   }, 60000); // check every 1 min
+
+//   return () => clearInterval(interval);
+// }, [lastDrinkTime]);
+
+
+// useEffect(() => {
+//   const sub = Notifications.addNotificationResponseReceivedListener(response => {
+//     const action = response.actionIdentifier;
+
+//     if (action === "ADD_150") add(150);
+//     if (action === "ADD_250") add(250);
+//   });
+
+//   return () => sub.remove();
+// }, []);
 
   const syncFromStorage = async () => {
     try {
@@ -44,6 +95,10 @@ export default function HydrationTracker({ initialData }) {
 
     setLogs(newLogs);
     setWater(newTotal);
+    setLastDrinkTime(Date.now());
+    setNotified(false);
+
+    
 
     // Persist to storage
     const raw   = await AsyncStorage.getItem("HEALTH_ACTIVITY");
