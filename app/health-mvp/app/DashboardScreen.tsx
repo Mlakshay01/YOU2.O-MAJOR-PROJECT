@@ -21,12 +21,10 @@ import DiseaseRiskSection from "@/src/components/DiseaseRiskSection";
 import { Ionicons } from "@expo/vector-icons";
 import { TouchableOpacity } from "react-native";
 import * as ImagePicker from "expo-image-picker";
+import { Pedometer } from "expo-sensors";
 
 const BASE_URL = "http://localhost:8000";
-
 const API_URL = "http://localhost:8000"; // ⚠️ replace with your IP
-
-
 
 interface MoodEntry {
   date: string;
@@ -65,6 +63,8 @@ export default function DashboardScreen() {
   const navigation = useNavigation();
   const router     = useRouter();
 
+  const today = new Date().toISOString().slice(0, 10);
+
   useEffect(() => { navigation.setOptions({ headerShown: false }); }, []);
 
   const [entries, setEntries]       = useState<MoodEntry[]>([]);
@@ -72,7 +72,6 @@ export default function DashboardScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [isSaving, setIsSaving]     = useState(false);
 
-  const [steps, setSteps]           = useState("");
   const [sleep, setSleep]           = useState("");
   const [sedentary, setSedentary]   = useState("");
 
@@ -81,6 +80,55 @@ export default function DashboardScreen() {
   const [foodData, setFoodData] = useState<FoodData | null>(null);
 
   const [streak, setStreak] = useState<{ current_streak: number; longest_streak: number; grace_used: boolean } | null>(null);
+
+  const [steps, setSteps] = useState("");
+  const [pedometerAvailable, setPedometerAvailable] = useState(false);
+  const [isCountingLive, setIsCountingLive] = useState(false);
+
+  // Fetch steps from midnight → now using Pedometer history
+const fetchTodaySteps = useCallback(async () => {
+  const isAvailable = await Pedometer.isAvailableAsync();
+  setPedometerAvailable(isAvailable);
+  if (!isAvailable) return;
+
+  const start = new Date();
+  start.setHours(0, 0, 0, 0); // midnight today
+  const end = new Date();
+
+  try {
+    const result = await Pedometer.getStepCountAsync(start, end);
+    if (result?.steps) {
+      setSteps(result.steps.toString());
+      await saveMetric(today, "steps", result.steps);
+    }
+  } catch (err) {
+    console.log("Pedometer history error:", err);
+  }
+}, [today]);
+
+// Live subscription for real-time updates
+useEffect(() => {
+  let subscription: any;
+
+  Pedometer.isAvailableAsync().then((available) => {
+    if (!available) return;
+    setIsCountingLive(true);
+
+    subscription = Pedometer.watchStepCount((result) => {
+      // result.steps = steps since subscription started, not from midnight
+      // So we re-fetch from midnight on each tick
+      const start = new Date();
+      start.setHours(0, 0, 0, 0);
+      Pedometer.getStepCountAsync(start, new Date())
+        .then((r) => {
+          if (r?.steps) setSteps(r.steps.toString());
+        })
+        .catch(() => {});
+    });
+  });
+
+  return () => subscription?.remove();
+}, []);
 
 const fetchStreak = useCallback(async () => {
   try {
@@ -145,23 +193,29 @@ const predictFood = async (imageUri: string) => {
   return res.data;
 };
 
+const load = useCallback(async () => {
+  const mood = await getMoodEntries();
+  const act  = await getTodayActivity();
+  setEntries(mood);
+  setActivity(act);
 
-
-  const load = useCallback(async () => {
-    const mood = await getMoodEntries();
-    const act  = await getTodayActivity();
-    setEntries(mood);
-    setActivity(act);
+  // ✅ Only use stored steps if pedometer isn't available
+  const isAvailable = await Pedometer.isAvailableAsync();
+  if (!isAvailable) {
     setSteps(act.steps?.toString() || "");
-    setSleep(act.sleep?.toString() || "");
-    setSedentary(act.sedentary?.toString() || "");
-  }, []);
+  }
+
+  setSleep(act.sleep?.toString() || "");
+  setSedentary(act.sedentary?.toString() || "");
+}, []);
 
   useFocusEffect(useCallback(() => {
-    load();
+    load().then(() => {
+      fetchTodaySteps();
+    });
     fetchWellness();
     fetchStreak();
-  }, [load, fetchWellness, fetchStreak]));
+  }, [load, fetchWellness, fetchStreak, fetchTodaySteps]));
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -169,7 +223,6 @@ const predictFood = async (imageUri: string) => {
     setRefreshing(false);
   };
 
-  const today      = new Date().toISOString().slice(0, 10);
   const todayEntry = entries.find((e) => e.date === today);
   const moodText   = todayEntry?.finalMood || todayEntry?.predicted?.cls;
 
@@ -322,8 +375,32 @@ const predictFood = async (imageUri: string) => {
       {/* INPUT GRID */}
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
         <InputCard title="Steps">
-          <TextInput value={steps} onChangeText={setSteps} keyboardType="numeric" style={input} />
-        </InputCard>
+  {pedometerAvailable ? (
+    <View>
+      <TextInput
+        value={steps}
+        onChangeText={setSteps}
+        keyboardType="numeric"
+        style={input}
+      />
+      <Text style={{ fontSize: 10, color: isCountingLive ? "#22C55E" : "#9CA3AF", marginTop: 4 }}>
+        {isCountingLive ? "🟢 Live from pedometer" : "📱 From health history"}
+      </Text>
+    </View>
+  ) : (
+    <View>
+      <TextInput
+        value={steps}
+        onChangeText={setSteps}
+        keyboardType="numeric"
+        style={input}
+      />
+      <Text style={{ fontSize: 10, color: "#EF4444", marginTop: 4 }}>
+        ⚠️ Pedometer unavailable — enter manually
+      </Text>
+    </View>
+  )}
+</InputCard>
         <InputCard title="Sleep (hrs)">
           <TextInput value={sleep} onChangeText={setSleep} keyboardType="numeric" style={input} />
         </InputCard>
