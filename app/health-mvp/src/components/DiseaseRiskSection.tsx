@@ -10,7 +10,7 @@ import { useFocusEffect } from "expo-router";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const BASE_URL     = "http://localhost:8000";
+const BASE_URL     = "http://192.168.56.1:8000";
 const SCREEN_WIDTH = Dimensions.get("window").width;
 
 // ── Types ─────────────────────────────────────────────────────────────────────

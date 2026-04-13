@@ -13,7 +13,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { BarChart, LineChart } from "react-native-chart-kit";
 import { Ionicons } from "@expo/vector-icons";
 
-const BASE_URL    = "http://localhost:8000";
+const BASE_URL    = "http://192.168.56.1:8000";
 const SCREEN_WIDTH = Dimensions.get("window").width;
 
 interface DayStat {

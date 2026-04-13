@@ -22,9 +22,11 @@ import { Ionicons } from "@expo/vector-icons";
 import { TouchableOpacity } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { Pedometer } from "expo-sensors";
+import SleepDetectionCard from "@/src/components/SleepDetectionCard";
+import { detectAndSaveWakeHour, getTodaySleepSummary } from "../src/storage/sleepDetection";
 
-const BASE_URL = "http://localhost:8000";
-const API_URL = "http://localhost:8000"; // ⚠️ replace with your IP
+const BASE_URL = "http://192.168.56.1:8000";
+const API_URL = "http://192.168.56.1:8000"; // ⚠️ replace with your IP
 
 interface MoodEntry {
   date: string;
@@ -209,13 +211,20 @@ const load = useCallback(async () => {
   setSedentary(act.sedentary?.toString() || "");
 }, []);
 
-  useFocusEffect(useCallback(() => {
-    load().then(() => {
-      fetchTodaySteps();
-    });
-    fetchWellness();
-    fetchStreak();
-  }, [load, fetchWellness, fetchStreak, fetchTodaySteps]));
+useFocusEffect(useCallback(() => {
+  load().then(async () => {
+    fetchTodaySteps();
+
+    // ✅ Runs AFTER load() so it overwrites the "0" from storage
+    const summary = await getTodaySleepSummary();
+    if (summary?.hoursSlept) {
+      setSleep(summary.hoursSlept.toString());
+    }
+  });
+  fetchWellness();
+  fetchStreak();
+  detectAndSaveWakeHour();
+}, [load, fetchWellness, fetchStreak, fetchTodaySteps]));
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -366,6 +375,8 @@ const load = useCallback(async () => {
   </View>
 )}
 
+<SleepDetectionCard/>
+
       {/* HYDRATION */}
       <View style={card}>
         <Text style={title}>Hydration</Text>
@@ -477,6 +488,43 @@ const load = useCallback(async () => {
     </Pressable>
   )}
 </InputCard>
+
+{/* TEMP TEST BUTTON — DELETE AFTER TESTING */}
+      <Pressable onPress={async () => {
+        const todayDate = new Date();
+        const todayKey  = todayDate.toISOString().slice(0, 10);
+
+        const yesterdayDate = new Date();
+        yesterdayDate.setDate(yesterdayDate.getDate() - 1); // ✅ actual yesterday
+
+        const sleepTime = new Date(yesterdayDate); // ✅ based on yesterday
+        sleepTime.setHours(23, 30, 0, 0);
+
+        const wakeTime = new Date(todayDate); // ✅ based on today
+        wakeTime.setHours(7, 15, 0, 0);
+
+        const yKey = yesterdayDate.toISOString().slice(0, 10);
+
+        const fake = {
+          [yKey]: { 
+            date: yKey, 
+            estimatedSleepTime: sleepTime.toISOString(),
+            estimatedWakeTime: "", 
+            wakeHour: 7 
+          },
+          [todayKey]: { 
+            date: todayKey, 
+            estimatedSleepTime: "",
+            estimatedWakeTime: wakeTime.toISOString(),
+            wakeHour: 7 
+          },
+        };
+        await AsyncStorage.setItem("sleep_detection", JSON.stringify(fake));
+        alert("✅ Done — pull to refresh");
+      }} style={[mainButton, { backgroundColor: "#F59E0B" }]}>
+        <Text style={{ color: "#fff", fontWeight: "800" }}>🧪 Seed Sleep Test</Text>
+      </Pressable>
+
 
       {/* PROCESS BUTTON */}
       <Pressable
