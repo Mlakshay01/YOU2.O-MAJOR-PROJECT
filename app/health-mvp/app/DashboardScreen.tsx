@@ -195,6 +195,44 @@ const predictFood = async (imageUri: string) => {
   return res.data;
 };
 
+const autoFillFromSensors = useCallback(async () => {
+  const summary = await getTodaySleepSummary();
+  if (summary?.hoursSlept) {
+    setSleep(summary.hoursSlept.toString());
+  }
+
+  const wakeHour = await detectAndSaveWakeHour();
+  const isAvailable = await Pedometer.isAvailableAsync();
+  if (!isAvailable) return;
+
+  const now   = new Date();
+  const start = new Date();
+  start.setHours(wakeHour, 0, 0, 0);
+
+  const totalMinutes = Math.floor((now.getTime() - start.getTime()) / 60000);
+  const windows      = Math.floor(totalMinutes / 30);
+  if (windows <= 0) return;
+
+  const checks = Array.from({ length: windows }, (_, i) => {
+    const ws = new Date(start.getTime() + i * 30 * 60000);
+    const we = new Date(ws.getTime() + 30 * 60000);
+    return Pedometer.getStepCountAsync(ws, we);
+  });
+
+  try {
+    const results = await Promise.all(checks);
+    let sedentaryWindows = 0;
+    results.forEach((r) => {
+      if ((r?.steps ?? 0) < 100) sedentaryWindows++;
+    });
+    const sedentaryHours = parseFloat(((sedentaryWindows * 30) / 60).toFixed(1));
+    setSedentary(sedentaryHours.toString());
+    await saveMetric(today, "sedentary", sedentaryHours);
+  } catch (err) {
+    console.log("Sedentary estimation error:", err);
+  }
+}, [today]);
+
 const load = useCallback(async () => {
   const mood = await getMoodEntries();
   const act  = await getTodayActivity();
@@ -214,23 +252,20 @@ const load = useCallback(async () => {
 useFocusEffect(useCallback(() => {
   load().then(async () => {
     fetchTodaySteps();
-
-    // ✅ Runs AFTER load() so it overwrites the "0" from storage
-    const summary = await getTodaySleepSummary();
-    if (summary?.hoursSlept) {
-      setSleep(summary.hoursSlept.toString());
-    }
+    await autoFillFromSensors();
   });
   fetchWellness();
   fetchStreak();
-  detectAndSaveWakeHour();
-}, [load, fetchWellness, fetchStreak, fetchTodaySteps]));
+}, [load, fetchWellness, fetchStreak, fetchTodaySteps, autoFillFromSensors]));
 
   const onRefresh = async () => {
-    setRefreshing(true);
-    await Promise.all([load(), fetchWellness()]);
-    setRefreshing(false);
-  };
+  setRefreshing(true);
+  await load();
+  await fetchWellness();
+  fetchTodaySteps();
+  await autoFillFromSensors();
+  setRefreshing(false);
+};
 
   const todayEntry = entries.find((e) => e.date === today);
   const moodText   = todayEntry?.finalMood || todayEntry?.predicted?.cls;
@@ -412,11 +447,18 @@ useFocusEffect(useCallback(() => {
     </View>
   )}
 </InputCard>
-        <InputCard title="Sleep (hrs)">
+<InputCard title="Sleep (hrs)">
           <TextInput value={sleep} onChangeText={setSleep} keyboardType="numeric" style={input} />
+          <Text style={{ fontSize: 10, color: "#22C55E", marginTop: 4 }}>
+            😴 Auto-detected · editable
+          </Text>
         </InputCard>
-        <InputCard title="Sedentary (hrs)">
+
+<InputCard title="Sedentary (hrs)">
           <TextInput value={sedentary} onChangeText={setSedentary} keyboardType="numeric" style={input} />
+          <Text style={{ fontSize: 10, color: "#22C55E", marginTop: 4 }}>
+            🪑 Auto-estimated · editable
+          </Text>
         </InputCard>
 
         {/* MOOD CARD — with edit button */}
@@ -489,7 +531,7 @@ useFocusEffect(useCallback(() => {
   )}
 </InputCard>
 
-{/* TEMP TEST BUTTON — DELETE AFTER TESTING */}
+{/* TEMP TEST BUTTON — DELETE AFTER TESTING
       <Pressable onPress={async () => {
         const todayDate = new Date();
         const todayKey  = todayDate.toISOString().slice(0, 10);
@@ -524,6 +566,16 @@ useFocusEffect(useCallback(() => {
       }} style={[mainButton, { backgroundColor: "#F59E0B" }]}>
         <Text style={{ color: "#fff", fontWeight: "800" }}>🧪 Seed Sleep Test</Text>
       </Pressable>
+
+      {/* TEMP — seed sedentary */}
+{/* <Pressable onPress={async () => {
+  const today = new Date().toISOString().slice(0, 10);
+  await saveMetric(today, "sedentary", 5.5);
+  setSedentary("5.5");
+  alert("✅ Sedentary set to 5.5h");
+}} style={[mainButton, { backgroundColor: "#6366F1", marginTop: 10 }]}>
+  <Text style={{ color: "#fff", fontWeight: "800" }}>🧪 Seed Sedentary Test</Text>
+</Pressable> */} 
 
 
       {/* PROCESS BUTTON */}
