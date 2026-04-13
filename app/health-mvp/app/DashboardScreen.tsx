@@ -24,6 +24,7 @@ import * as ImagePicker from "expo-image-picker";
 import { Pedometer } from "expo-sensors";
 import SleepDetectionCard from "@/src/components/SleepDetectionCard";
 import { detectAndSaveWakeHour, getTodaySleepSummary } from "../src/storage/sleepDetection";
+import NetInfo from "@react-native-community/netinfo";
 
 const BASE_URL = "http://192.168.56.1:8000";
 const API_URL = "http://192.168.56.1:8000"; // ⚠️ replace with your IP
@@ -66,6 +67,17 @@ export default function DashboardScreen() {
   const router     = useRouter();
 
   const today = new Date().toISOString().slice(0, 10);
+
+  // Add state
+const [isOnline, setIsOnline] = useState(true);
+
+// Add this useEffect after your other useEffects
+useEffect(() => {
+  const unsubscribe = NetInfo.addEventListener((state) => {
+    setIsOnline(!!state.isConnected);
+  });
+  return () => unsubscribe();
+}, []);
 
   useEffect(() => { navigation.setOptions({ headerShown: false }); }, []);
 
@@ -285,6 +297,10 @@ useFocusEffect(useCallback(() => {
       if (!token) { alert("Not logged in — saved locally only"); return; }
 
       // 3. POST to backend
+      if (!isOnline) {
+        alert("📴 Saved locally — will sync when you're back online");
+        return;
+      }
       const res = await axios.post(`${BASE_URL}/activity`, {
         date:       today,
         steps:      parseInt(steps) || 0,
@@ -339,6 +355,31 @@ useFocusEffect(useCallback(() => {
           <Ionicons name="person-circle-outline" size={40} color="#2a8c82" />
         </TouchableOpacity>
       </View>
+
+      {/* OFFLINE BANNER */}
+      {!isOnline && (
+        <View style={{
+          backgroundColor: "#FEF3C7",
+          borderRadius: 12,
+          padding: 12,
+          marginBottom: 12,
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 8,
+          borderLeftWidth: 4,
+          borderLeftColor: "#F59E0B",
+        }}>
+          <Ionicons name="cloud-offline-outline" size={20} color="#F59E0B" />
+          <View>
+            <Text style={{ fontWeight: "800", fontSize: 13, color: "#92400E" }}>
+              You're offline
+            </Text>
+            <Text style={{ fontSize: 11, color: "#92400E", marginTop: 2 }}>
+              Steps, sleep & sedentary still tracked locally. Data will sync when you reconnect.
+            </Text>
+          </View>
+        </View>
+      )}
 
       {/* WELLNESS SCORE CARD */}
       <View style={card}>
@@ -447,19 +488,20 @@ useFocusEffect(useCallback(() => {
     </View>
   )}
 </InputCard>
+
 <InputCard title="Sleep (hrs)">
-          <TextInput value={sleep} onChangeText={setSleep} keyboardType="numeric" style={input} />
-          <Text style={{ fontSize: 10, color: "#22C55E", marginTop: 4 }}>
-            😴 Auto-detected · editable
-          </Text>
-        </InputCard>
+  <TextInput value={sleep} onChangeText={setSleep} keyboardType="numeric" style={input} />
+  <Text style={{ fontSize: 10, color: pedometerAvailable ? "#22C55E" : "#9CA3AF", marginTop: 4 }}>
+    {pedometerAvailable ? "😴 Auto-detected · editable" : "😴 Enter manually"}
+  </Text>
+</InputCard>
 
 <InputCard title="Sedentary (hrs)">
-          <TextInput value={sedentary} onChangeText={setSedentary} keyboardType="numeric" style={input} />
-          <Text style={{ fontSize: 10, color: "#22C55E", marginTop: 4 }}>
-            🪑 Auto-estimated · editable
-          </Text>
-        </InputCard>
+  <TextInput value={sedentary} onChangeText={setSedentary} keyboardType="numeric" style={input} />
+  <Text style={{ fontSize: 10, color: pedometerAvailable ? "#22C55E" : "#9CA3AF", marginTop: 4 }}>
+    {pedometerAvailable ? "🪑 Auto-estimated · editable" : "🪑 Enter manually"}
+  </Text>
+</InputCard>
 
         {/* MOOD CARD — with edit button */}
         <InputCard title="Mood">
@@ -530,53 +572,6 @@ useFocusEffect(useCallback(() => {
     </Pressable>
   )}
 </InputCard>
-
-{/* TEMP TEST BUTTON — DELETE AFTER TESTING
-      <Pressable onPress={async () => {
-        const todayDate = new Date();
-        const todayKey  = todayDate.toISOString().slice(0, 10);
-
-        const yesterdayDate = new Date();
-        yesterdayDate.setDate(yesterdayDate.getDate() - 1); // ✅ actual yesterday
-
-        const sleepTime = new Date(yesterdayDate); // ✅ based on yesterday
-        sleepTime.setHours(23, 30, 0, 0);
-
-        const wakeTime = new Date(todayDate); // ✅ based on today
-        wakeTime.setHours(7, 15, 0, 0);
-
-        const yKey = yesterdayDate.toISOString().slice(0, 10);
-
-        const fake = {
-          [yKey]: { 
-            date: yKey, 
-            estimatedSleepTime: sleepTime.toISOString(),
-            estimatedWakeTime: "", 
-            wakeHour: 7 
-          },
-          [todayKey]: { 
-            date: todayKey, 
-            estimatedSleepTime: "",
-            estimatedWakeTime: wakeTime.toISOString(),
-            wakeHour: 7 
-          },
-        };
-        await AsyncStorage.setItem("sleep_detection", JSON.stringify(fake));
-        alert("✅ Done — pull to refresh");
-      }} style={[mainButton, { backgroundColor: "#F59E0B" }]}>
-        <Text style={{ color: "#fff", fontWeight: "800" }}>🧪 Seed Sleep Test</Text>
-      </Pressable>
-
-      {/* TEMP — seed sedentary */}
-{/* <Pressable onPress={async () => {
-  const today = new Date().toISOString().slice(0, 10);
-  await saveMetric(today, "sedentary", 5.5);
-  setSedentary("5.5");
-  alert("✅ Sedentary set to 5.5h");
-}} style={[mainButton, { backgroundColor: "#6366F1", marginTop: 10 }]}>
-  <Text style={{ color: "#fff", fontWeight: "800" }}>🧪 Seed Sedentary Test</Text>
-</Pressable> */} 
-
 
       {/* PROCESS BUTTON */}
       <Pressable
