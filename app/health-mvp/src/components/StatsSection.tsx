@@ -68,13 +68,16 @@ export default function StatsSection() {
       const res = await axios.get(`${BASE_URL}/activity/stats?days=${days}`, {
         headers: { token },
       });
-      setStats(res.data.data);
-    } catch (err: any) {
-      console.log("Stats error:", err?.response?.data || err.message);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+
+
+
+setStats(res.data.data);
+     } catch (err: any) {
+    console.log("Stats error:", err?.response?.data || err.message);
+  } finally {
+    setLoading(false);
+  }
+}, []);
 
   useFocusEffect(
     useCallback(() => {
@@ -93,6 +96,11 @@ export default function StatsSection() {
   };
 
   // ── Helpers ────────────────────────────────────────────────────
+
+const total = (key: MetricKey): number => {
+  const valid = stats.filter((d) => d[key] !== null && d[key] !== undefined);
+  return valid.reduce((sum, d) => sum + (d[key] as number), 0);
+};
 
   const avg = (key: MetricKey): string => {
     const valid = stats.filter((d) => d[key] !== null && d[key] !== undefined);
@@ -154,19 +162,33 @@ export default function StatsSection() {
     color:   string;
   }) => {
     const data   = makeChartData(dataKey);
-    const avgVal = avg(dataKey);
+const avgVal = avg(dataKey);
+const totalVal = total(dataKey);
     const is28   = statsRange === 28;
 
     return (
       <View style={card}>
         <View style={rowBetween}>
           <Text style={cardTitle}>{title}</Text>
-          <Text style={avgText}>
+          {/* <Text style={avgText}>
             Avg:{" "}
             <Text style={{ color, fontWeight: "700" }}>
               {avgVal} {avgVal !== "--" ? unit : ""}
             </Text>
-          </Text>
+          </Text> */}
+
+          <View style={{ alignItems: "flex-end" }}>
+  <Text style={avgText}>
+    Avg:{" "}
+    <Text style={{ color, fontWeight: "700" }}>
+      {avgVal} {avgVal !== "--" ? unit : ""}
+    </Text>
+  </Text>
+
+  <Text style={{ fontSize: 11, color: "#9CA3AF" }}>
+    Total: {totalVal} {unit}
+  </Text>
+</View>
         </View>
 
         {is28 ? (
@@ -200,6 +222,7 @@ export default function StatsSection() {
       </View>
     );
   };
+  
 
   // ── Mood dots ──────────────────────────────────────────────────
   const MoodDots = () => {

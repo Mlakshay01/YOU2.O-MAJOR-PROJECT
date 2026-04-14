@@ -33,13 +33,17 @@ interface DiseaseResult {
 interface RiskData {
   bmi:    number | null;
   window: string;
+  ideal_calories?: number;
   risks: {
     diabetes:      DiseaseResult;
     heart_disease: DiseaseResult;
     obesity:       DiseaseResult;
   };
 }
-
+interface RiskResult {
+  contributions: Record<string, Contribution>;
+  ideal_calories?: number;
+}
 // ── Visual config ─────────────────────────────────────────────────────────────
 
 const RISK_CONFIG = {
@@ -244,6 +248,7 @@ export default function DiseaseRiskSection() {
                 </Text>
 
                 {Object.entries(result.contributions).map(([metric, contrib]) => {
+                  const c = contrib as Contribution;
                   const arrow  = impactArrow(contrib.contribution);
                   const hasAvg = contrib.avg !== null && contrib.avg !== undefined;
                   const unit   = METRIC_UNITS[metric] ?? "";
@@ -255,11 +260,36 @@ export default function DiseaseRiskSection() {
                         {/* Metric name + value */}
                         <Text style={{ fontSize: 13, fontWeight: "600", color: "#111827" }}>
                           {METRIC_LABELS[metric] ?? metric}
-                          {hasAvg && (
+                          {/* {hasAvg && (
                             <Text style={{ fontWeight: "400", color: "#6B7280" }}>
                               {"  "}{contrib.avg}{unit}
                             </Text>
-                          )}
+                          )} */}
+
+                          {metric === "food" && hasAvg ? (
+                          <Text style={{ fontWeight: "400", color: "#6B7280" }}>
+                                   {"  "}{contrib.avg} kcal
+                                 {data?.ideal_calories && (
+                                         <Text>
+                                  {" / "}{Math.round(data.ideal_calories)} kcal
+                                  </Text>
+                                   )}
+                                              </Text>
+                                          ) : hasAvg ? (
+                                            <Text style={{ fontWeight: "400", color: "#6B7280" }}>
+                                              {"  "}{contrib.avg}{unit}
+                                            </Text>
+                                          ) : null}
+
+                            {metric === "food" && hasAvg && data?.ideal_calories && (
+                              <Text style={{ fontSize: 10, color: "#9CA3AF", marginTop: 2 }}>
+                                {c.avg > data.ideal_calories
+                                  ? "⚠️ Calorie intake above recommended"
+                                  : c.avg < data.ideal_calories * 0.75
+                                  ? "⚠️ Calorie intake too low"
+                                  : "✅ Healthy calorie intake"}
+                              </Text>
+                            )}
                           {metric === "mood" && contrib.dominant && (
                             <Text style={{ fontWeight: "400", color: "#6B7280" }}>
                               {"  "}{contrib.dominant}

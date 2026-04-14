@@ -6,3 +6,5 @@ load_dotenv()
 
 client = MongoClient(os.getenv("MONGODB_URI"))
 db = client[os.getenv("DB_NAME")]
+
+collection = db["user_activity"]

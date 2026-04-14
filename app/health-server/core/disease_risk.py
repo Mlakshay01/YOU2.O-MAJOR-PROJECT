@@ -122,55 +122,49 @@ def bmi_impact(bmi: float) -> float:
     return -1.0
 
 
-# def food_impact(avg_calories: Optional[float]) -> Optional[float]:
-#     """
-#     Converts calorie intake → impact (-1 to +1)
+def calculate_ideal_calories(weight, height, age, gender):
+    """
+    Mifflin-St Jeor Equation (most accurate BMR formula)
 
-#     Ideal: ~1800–2200 kcal
-#     """
-#     if avg_calories is None:
-#         return None
+    weight: kg
+    height: cm
+    age: years
+    gender: "male" or "female"
+    """
 
-#     if avg_calories < 1500:
-#         return 0.5   # slightly healthy
-#     if avg_calories <= 2200:
-#         return 1.0   # optimal
-#     if avg_calories <= 2800:
-#         return 0.0   # neutral
-#     return -1.0      # unhealthy (high calories)
-
-def food_impact(
-    avg_calories: Optional[float],
-    ideal_calories: Optional[float] = None
-) -> Optional[float]:
-    
-
-    # Evidence: WHO dietary guidelines, Hall et al. Cell Metabolism 2019
-    # Ideal range: ~1600-2200 kcal (varies by sex/activity but this is population avg)
-    # """
-    if avg_calories is None:
+    if not weight or not height or not age or not gender:
         return None
 
-    # ✅ CASE 1: Personalized (BEST)
-    if ideal_calories:
-        ratio = avg_calories / ideal_calories
+    if gender.lower() == "male":
+        bmr = 10 * weight + 6.25 * height - 5 * age + 5
+    else:
+        bmr = 10 * weight + 6.25 * height - 5 * age - 161
 
-        if ratio < 0.8:
-            return 0.5
-        if 0.8 <= ratio <= 1.1:
-            return 1.0
-        if 1.1 < ratio <= 1.3:
-            return 0.0
-        return -1.0
+    # assume moderate activity (you can improve later)
+    return bmr * 1.55
 
-    # CASE 2: Fallback (no user data)
-    if avg_calories < 1500:
-        return 0.5
-    if avg_calories <= 2200:
-        return 1.0
-    if avg_calories <= 2800:
-        return 0.0
-    return -1.0
+
+
+def food_impact(avg_calories, ideal_calories):
+    if avg_calories is None or ideal_calories is None:
+        return None
+
+    ratio = avg_calories / ideal_calories
+
+    # scientifically meaningful thresholds
+    if ratio < 0.75:
+        return -0.5   # under-eating (nutritional deficiency risk)
+
+    if 0.75 <= ratio <= 1.1:
+        return 1.0    # optimal intake 
+
+    if 1.1 < ratio <= 1.3:
+        return 0.0    # slightly high
+
+    if 1.3 < ratio <= 1.6:
+        return -0.5   # high intake
+
+    return -1.0       # very high (obesity / diabetes risk)
 
 # ── Weighted score builders ───────────────────────────────────────────────────
 
@@ -420,6 +414,11 @@ def compute_disease_risks(
     w_imp  = water_imp     if water_imp     is not None else (_water_imp(int(avg_water))      if avg_water     is not None else None)
     f_imp  = food_imp if food_imp is not None else (food_impact(avg_calories) if avg_calories is not None else None)
 
+#     return {
+#     "diabetes": diabetes_risk(s_imp, st_imp, se_imp, w_imp, bmi, f_imp),
+#     "heart_disease": heart_disease_risk(s_imp, st_imp, se_imp, w_imp, bmi, f_imp),
+#     "obesity": obesity_risk(s_imp, st_imp, se_imp, w_imp, bmi, f_imp),
+# }
    
     results = {
     "diabetes": diabetes_risk(s_imp, st_imp, se_imp, w_imp, bmi, f_imp),

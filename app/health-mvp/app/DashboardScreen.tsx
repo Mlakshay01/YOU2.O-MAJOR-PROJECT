@@ -22,6 +22,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { TouchableOpacity } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { Pedometer } from "expo-sensors";
+
+
+const router = useRouter();
 import SleepDetectionCard from "@/src/components/SleepDetectionCard";
 import { detectAndSaveWakeHour, getTodaySleepSummary } from "../src/storage/sleepDetection";
 import NetInfo from "@react-native-community/netinfo";
@@ -53,6 +56,18 @@ interface FoodData {
     carbs?: number;
     fat?: number;
   };
+}
+
+interface MealItem {
+  food: string;
+  confidence?: number;
+  nutrition?: {
+    calories?: number;
+    protein?: number;
+    carbs?: number;
+    fat?: number;
+  };
+  time: string;
 }
 
 const scoreColor = (s: number | null) => {
@@ -172,21 +187,44 @@ const fetchStreak = useCallback(async () => {
   }, []);
 
   
-const captureFood = async () => {
+// const captureFood = async () => {
+//   const result = await ImagePicker.launchImageLibraryAsync({
+//     mediaTypes: ImagePicker.MediaTypeOptions.Images,
+//     quality: 1,
+//   });
+
+//   if (!result.canceled && result.assets?.length) {
+//     const uri: string = result.assets[0].uri; // ✅ typed
+
+//     try {
+//       const data = await predictFood(uri);
+//       setFoodData(data);
+//     } catch (err) {
+//       console.log("Food API error:", err);
+//       console.log("api url:",API_URL);
+//       alert("Food detection failed ❌");
+//     }
+//   }
+// };
+
+const captureFood = async (mealType: "breakfast" | "lunch" | "dinner" | "snacks") => {
   const result = await ImagePicker.launchImageLibraryAsync({
     mediaTypes: ImagePicker.MediaTypeOptions.Images,
     quality: 1,
   });
 
   if (!result.canceled && result.assets?.length) {
-    const uri: string = result.assets[0].uri; // ✅ typed
+    const uri: string = result.assets[0].uri;
 
     try {
       const data = await predictFood(uri);
       setFoodData(data);
+
+      // 🔥 SAVE WITH MEAL TYPE
+      await saveFood(mealType, data);
+
     } catch (err) {
       console.log("Food API error:", err);
-      console.log("api url:",API_URL);
       alert("Food detection failed ❌");
     }
   }
@@ -205,6 +243,40 @@ const predictFood = async (imageUri: string) => {
   const res = await axios.post(`${API_URL}/predict-food`, formData);
 
   return res.data;
+};
+
+const saveFood = async (mealType: string, data: FoodData) => {
+  const today = new Date().toISOString().slice(0, 10);
+  const time = new Date().toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  const raw = await AsyncStorage.getItem("HEALTH_ACTIVITY");
+  const list = raw ? JSON.parse(raw) : [];
+
+  let entry = list.find((e) => e.date === today);
+
+  if (!entry) {
+    entry = {
+      date: today,
+      meals: {
+        breakfast: [],
+        lunch: [],
+        dinner: [],
+        snacks: []
+      }
+    };
+    list.push(entry);
+  }
+
+  //  PUSH FOOD INTO CORRECT MEAL
+  entry.meals[mealType].push({
+    ...data,
+    time
+  });
+
+  await AsyncStorage.setItem("HEALTH_ACTIVITY", JSON.stringify(list));
 };
 
 const autoFillFromSensors = useCallback(async () => {
@@ -309,9 +381,11 @@ useFocusEffect(useCallback(() => {
         water:      act?.water || 0,
         water_logs: act?.waterLogs || [],
         mood:       moodText || null,
-  food: foodData?.food ?? null,
-    confidence: foodData?.confidence ?? null,
-    nutrition: foodData?.nutrition ?? null,
+  // food: foodData?.food ?? null,
+  //   confidence: foodData?.confidence ?? null,
+  //   nutrition: foodData?.nutrition ?? null,
+
+  meals: activity?.meals ?? {},
       }, { headers: { token } });
 
       // 4. Update wellness score from response — NO load() call here
@@ -338,6 +412,21 @@ useFocusEffect(useCallback(() => {
   };
 
   const color = scoreColor(wellness);
+
+ 
+const totalCalories = (() => {
+  if (!activity?.meals) return 0;
+
+  let total = 0;
+
+  ["breakfast", "lunch", "dinner", "snacks"].forEach((meal) => {
+    activity.meals[meal]?.forEach((item) => {
+      total += item?.nutrition?.calories || 0;
+    });
+  });
+
+  return total;
+})();
 
   return (
     <ScrollView
@@ -533,44 +622,21 @@ useFocusEffect(useCallback(() => {
       </View>
 
       {/* FOOD CARD */}
+
+
 <InputCard title="Food">
-  {foodData ? (
-    <View>
-      <Text style={{ fontWeight: "700", fontSize: 13 }}>
-        {foodData.food}
-      </Text>
-
-      <Text style={{ fontSize: 11, color: "#6B7280" }}>
-        Confidence: {foodData.confidence?.toFixed(2)}
-      </Text>
-
-      {foodData.nutrition && (
-        <View style={{ marginTop: 6 }}>
-          <Text style={{ fontSize: 11 }}>Calories: {foodData.nutrition.calories}</Text>
-          <Text style={{ fontSize: 11 }}>Protein: {foodData.nutrition.protein}</Text>
-          <Text style={{ fontSize: 11 }}>Carbs: {foodData.nutrition.carbs}</Text>
-          <Text style={{ fontSize: 11 }}>Fat: {foodData.nutrition.fat}</Text>
-        </View>
-      )}
-
-      <TouchableOpacity
-        onPress={captureFood}
-        style={{
-          marginTop: 6,
-          backgroundColor: "#F3F4F6",
-          padding: 6,
-          borderRadius: 10,
-          alignSelf: "flex-start",
-        }}
-      >
-        <Text style={{ fontSize: 11 }}>Edit</Text>
-      </TouchableOpacity>
-    </View>
-  ) : (
-    <Pressable onPress={captureFood} style={buttonSmall}>
-      <Text style={{ color: "#fff" }}>Capture</Text>
-    </Pressable>
-  )}
+  <TouchableOpacity
+    onPress={() => router.push("/food")}
+    style={{
+      backgroundColor: "#2a8c82",
+      padding: 14,
+      borderRadius: 12,
+    }}
+  >
+    <Text style={{ color: "#fff", textAlign: "center", fontWeight: "700" }}>
+      Add Food 🍔
+    </Text>
+  </TouchableOpacity>
 </InputCard>
 
       {/* PROCESS BUTTON */}

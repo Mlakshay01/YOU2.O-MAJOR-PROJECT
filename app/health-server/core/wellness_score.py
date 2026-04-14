@@ -265,11 +265,26 @@ def compute_wellness_score(records: list) -> dict:
     sedentary_vals = [r["sedentary"] for r in records if r.get("sedentary") is not None]
     water_vals     = [r["water"]     for r in records if r.get("water")     is not None]
     mood_vals      = [r["mood"]      for r in records if r.get("mood")      is not None]
-    food_vals = [
-    r.get("food", {}).get("nutrition", {}).get("calories")
-    for r in records
-    if r.get("food") and r.get("food", {}).get("nutrition", {}).get("calories") is not None
-]
+#     food_vals = [
+#     r.get("food", {}).get("nutrition", {}).get("calories")
+#     for r in records
+#     if r.get("food") and r.get("food", {}).get("nutrition", {}).get("calories") is not None
+# ]
+
+    food_vals = []
+
+    for r in records:
+        meals = r.get("meals", {})
+        total = 0
+
+        for meal in meals.values():
+            for item in meal:
+                total += item.get("nutrition", {}).get("calories", 0)
+
+
+        food_vals.append(total)
+
+    
 
     # ── Compute averages (None if no data) ────────────────────────
     avg_sleep     = sum(sleep_vals)     / len(sleep_vals)     if sleep_vals     else None
@@ -327,5 +342,8 @@ def compute_wellness_score(records: list) -> dict:
     normalised = weighted_sum / total_weight
     score      = round(((normalised + 1) / 2) * 100)
     score      = max(0, min(100, score))
+
+
+    
 
     return {"score": score, "breakdown": breakdown}
