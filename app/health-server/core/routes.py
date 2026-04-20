@@ -8,8 +8,9 @@ from datetime import datetime, timedelta, timezone
 from bson import ObjectId
 from auth.user_model import verify_token
 from core.activity_model import upsert_daily_activity, get_user_activity, activity_collection
-from core.wellness_score import compute_wellness_score
-from core.disease_risk import calculate_ideal_calories, compute_disease_risks, food_impact
+from core.wellness_score import compute_wellness_score, food_impact
+from core.disease_risk import calculate_ideal_calories, compute_disease_risks
+
 
 from core.db import collection
 from food.inference import predict_food
