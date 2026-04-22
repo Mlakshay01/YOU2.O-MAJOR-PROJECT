@@ -1,7 +1,8 @@
 fastapi
 uvicorn
-torch
-torchvision
+pymongo
+python-dotenv
+groq
 pillow
 python-multipart
-
+requests

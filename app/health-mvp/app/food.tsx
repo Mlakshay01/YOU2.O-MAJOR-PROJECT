@@ -40,7 +40,7 @@ const fetchMeals = async () => {
   try {
     const token = await AsyncStorage.getItem("token");
 
-    const res = await fetch("http://localhost:8000/activity", {
+    const res = await fetch("http://192.168.56.1:8000/activity", {
       headers: { token: token! },
     });
     console.log("TOKEN:", token);
@@ -70,7 +70,7 @@ const fetchMeals = async () => {
       const token = await AsyncStorage.getItem("token");
 
       const res = await fetch(
-        "http://localhost:8000/activity/stats?days=7",
+        "http://192.168.56.1:8000/activity/stats?days=7",
         {
           headers: { token: token! },
         }
@@ -102,7 +102,7 @@ const fetchMeals = async () => {
 
     formData.append("image", blob, "food.jpg");
 
-    const res = await fetch("http://localhost:8000/predict-food", {
+    const res = await fetch("http://192.168.56.1:8000/predict-food", {
       method: "POST",
       body: formData,
     });
@@ -130,7 +130,7 @@ const fetchMeals = async () => {
 
       const token = await AsyncStorage.getItem("token");
 
-      const res = await fetch("http://localhost:8000/activity/food", {
+      const res = await fetch("http://192.168.56.1:8000/activity/food", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

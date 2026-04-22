@@ -6,20 +6,15 @@ import {
   StyleSheet,
   ScrollView,
   Alert,
-  Platform,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { Ionicons, MaterialCommunityIcons, AntDesign } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useState, useEffect } from "react";
 import { useRouter, useNavigation } from "expo-router";
 import axios from "axios";
-import * as Google from "expo-auth-session/providers/google";
-import * as WebBrowser from "expo-web-browser";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-WebBrowser.maybeCompleteAuthSession();
-
-const BASE_URL = "http://localhost:8000";
+const BASE_URL = "http://192.168.56.1:8000";
 
 export default function AuthScreen() {
   const router = useRouter();
@@ -31,30 +26,15 @@ export default function AuthScreen() {
   const [height, setHeight] = useState("");
   const [weight, setWeight] = useState("");
   const [gender, setGender] = useState("Male");
-  const [age, setAge] = useState(""); 
+  const [age, setAge] = useState("");
   const [error, setError] = useState("");
   const [secure, setSecure] = useState(true);
 
   const navigation = useNavigation();
 
-  // Hide the top bar
   useEffect(() => {
     navigation.setOptions({ headerShown: false });
   }, []);
-
-  // GOOGLE AUTH
-  const [request, response, promptAsync] = Google.useAuthRequest({
-    webClientId:
-      "79994712044-dh4tf46i71vmre1jgllger38inia8cm5.apps.googleusercontent.com",
-  });
-
-  useEffect(() => {
-    if (response?.type === "success") {
-      AsyncStorage.setItem("isLoggedIn", "true");
-      Alert.alert("Google Auth Successful");
-      router.replace("/");
-    }
-  }, [response]);
 
   const handleAuth = async () => {
     try {
@@ -70,7 +50,6 @@ export default function AuthScreen() {
           height: height ? parseFloat(height) : null,
           weight: weight ? parseFloat(weight) : null,
           gender,
-          
         });
       }
 
@@ -222,21 +201,6 @@ export default function AuthScreen() {
             </LinearGradient>
           </TouchableOpacity>
 
-          <View style={styles.orRow}>
-            <View style={styles.line} />
-            <Text style={styles.or}>OR</Text>
-            <View style={styles.line} />
-          </View>
-
-          <TouchableOpacity
-            style={styles.googleBtn}
-            onPress={() => promptAsync()}
-            disabled={!request}
-          >
-            <AntDesign name="google" size={20} color="#DB4437" />
-            <Text style={styles.googleText}> Continue with Google</Text>
-          </TouchableOpacity>
-
           <TouchableOpacity onPress={() => setMode(mode === "login" ? "signup" : "login")}>
             <Text style={styles.switchText}>
               {mode === "login"
@@ -250,7 +214,6 @@ export default function AuthScreen() {
   );
 }
 
-// Styles remain unchanged
 const styles = StyleSheet.create({
   card: {
     backgroundColor: "#fff",
@@ -277,11 +240,6 @@ const styles = StyleSheet.create({
   row: { flexDirection: "row", marginBottom: 15 },
   button: { borderRadius: 25, alignItems: "center", paddingVertical: 16, marginBottom: 15 },
   buttonText: { color: "#fff", fontSize: 16, fontWeight: "600" },
-  orRow: { flexDirection: "row", alignItems: "center", marginVertical: 20 },
-  line: { flex: 1, height: 1, backgroundColor: "#E5E7EB" },
-  or: { marginHorizontal: 10, color: "#6B7280" },
-  googleBtn: { flexDirection: "row", justifyContent: "center", alignItems: "center", backgroundColor: "#F3F4F6", padding: 14, borderRadius: 15, marginBottom: 20 },
-  googleText: { fontSize: 14, color: "#374151" },
   switchText: { textAlign: "center", marginTop: 10, color: "#374151", fontWeight: "600" },
   error: { color: "red", marginBottom: 10, textAlign: "center" },
   genderContainer: { flexDirection: "row", justifyContent: "space-around", marginBottom: 15 },
